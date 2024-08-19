@@ -21,3 +21,7 @@ body{
     text-decoration: none;
     color: black;
 }
+
+.navSelection:hover{
+    font-style: italic;
+}
