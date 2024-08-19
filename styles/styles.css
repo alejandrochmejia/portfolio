@@ -89,8 +89,9 @@ h1 h2{
     height: 4dvh;
 }
 
-.moon{
+#colorChange{
     height: 100%;
     cursor: pointer;
     color: var(--color);
+    transition: all 1s linear;
 }
