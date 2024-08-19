@@ -109,3 +109,7 @@ h1 h2{
     align-items: center;
     gap: 1em;
 }
+
+.social-media{
+    color: var(--color);
+}
