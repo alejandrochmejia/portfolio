@@ -1,0 +1,20 @@
+body{
+    margin: 0;
+}
+
+main{
+    width: 100dvw;
+    height: 100dvh;
+}
+
+#home{
+    width: 100dvw;
+    height: 100dvh;
+    background-color: rgb(0, 0, 0);
+}
+
+#bg{
+    width: 100dvw;
+    height: 99dvh;
+    opacity: 50%;
+}
