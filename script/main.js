@@ -14,5 +14,6 @@ function changeColorMode(){
     }
 }
 function deselect(){
-    element = document.getElementsByClassName('navSelected');
+    elements = document.getElementsByClassName('navSelected');
+    elements[0].classList.remove('navSelected')
 }
