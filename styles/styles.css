@@ -142,7 +142,7 @@ h1 h2{
 }
 
 #info p{
-    font-size: 2vmin;
+    font-size: 2.2vmin;
 }
 
 #info article{
@@ -168,7 +168,7 @@ h1 h2{
 #info-knowledge{
     display: flex;
     flex-direction: column;
-    width: 26%;
+    width: 24%;
 }
 
 #info-knowledge div{
@@ -179,8 +179,8 @@ h1 h2{
 }
 
 #info-knowledge img{
-    width: 4rem;
-    height: 4rem;
+    width: 8vmin;
+    height: 8vmin;
     transition: scale 0.3s ease-out;
 }
 
