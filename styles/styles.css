@@ -126,7 +126,7 @@ h1 h2{
 }
 
 #info{
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     height: 100%;
@@ -186,4 +186,66 @@ h1 h2{
 
 #info-knowledge img:hover{
     scale: 1.1;
+}
+
+#projects{
+    display: none;
+    color: var(--color);
+}
+
+#contact{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: var(--color);
+}
+
+#contact form{
+    padding: 1em;
+    border: var(--color) 1px solid;
+    border-bottom: var(--color) 5px solid;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em;
+}
+
+#contact form input:not([type="submit"]){
+    border: none;
+    background-color: var(--bg);
+    border-bottom: var(--color) 2px solid;
+    width: 20em;
+    outline: none;
+    color: var(--color);
+}
+
+#contact form textarea{
+    resize: none;
+    width: 23em;
+    height: 8em;
+    text-wrap: wrap;
+    border: 2px var(--color) solid;
+    border-radius: 5px;
+    background-color: var(--bg);
+}
+
+#contact form input[type="submit"]{
+    background-color: var(--bg);
+    color: var(--color);
+    border-radius: 4px;
+    font-weight: bolder;
+    border: var(--color) 2px solid;
+    transition: all 0.6s cubic-bezier(.95,.09,.79,.76);
+    cursor: pointer;
+}
+
+#contact form input[type="submit"]:hover{
+    scale: 1.1;
+    background-color: var(--color);
+    color: var(--bg);
+    box-shadow: 0 0 2px 1px var(--color);
 }
