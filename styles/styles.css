@@ -132,11 +132,33 @@ h1 h2{
     height: 100%;
     text-align: left;
     flex-direction: row;
-    gap: 2em;
+    gap: 4em;
+    color: var(--color);
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+}
+
+#info h2{
+    font-size: 4vmin;
+}
+
+#info p{
+    font-size: 2vmin;
+}
+
+#info article{
+    transition: border 0.5s ease-out;
+    border-radius: 10px;
+    padding: 1em;
+}
+
+#info article:hover{
+    border-left: var(--color) solid 5px;
+    border-right: var(--color) solid 1px;
+    border-bottom: var(--color) solid 1px;
+    border-top: var(--color) solid 1px;
 }
 
 #info-text{
-    background-color: red;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -145,4 +167,23 @@ h1 h2{
 
 #info-knowledge{
     display: flex;
+    flex-direction: column;
+    width: 26%;
+}
+
+#info-knowledge div{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1em;
+}
+
+#info-knowledge img{
+    width: 4rem;
+    height: 4rem;
+    transition: scale 0.3s ease-out;
+}
+
+#info-knowledge img:hover{
+    scale: 1.1;
 }
