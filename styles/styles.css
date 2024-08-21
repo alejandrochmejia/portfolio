@@ -47,10 +47,16 @@ body{
 
 #names{
     height: 100%;
-    display: flex;
+    display: none;
     justify-content: center;
     align-items: center;
     transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+}
+
+.desactivedSection{
+    transform: translateX(-20px);
+    opacity: 0;
+    display: none;
 }
 
 h1{
@@ -117,4 +123,26 @@ h1 h2{
 
 .social-media{
     color: var(--color);
+}
+
+#info{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: left;
+    flex-direction: row;
+    gap: 2em;
+}
+
+#info-text{
+    background-color: red;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 30%;
+}
+
+#info-knowledge{
+    display: flex;
 }
