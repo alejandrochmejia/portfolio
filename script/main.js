@@ -13,7 +13,15 @@ function changeColorMode(){
         document.getElementById('colorChange').name = 'moon'
     }
 }
+
 function deselect(){
     elements = document.getElementsByClassName('navSelected');
     elements[0].classList.remove('navSelected')
 }
+
+function select(event){
+    let element = event.target;
+    deselect();
+    element.classList.add('navSelected')
+}
+
