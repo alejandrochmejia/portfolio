@@ -3,6 +3,11 @@
     --color: #262626;
 }
 
+main{
+    padding-left: 1vmin;
+    padding-right: 1vmin;
+}
+
 body{
     background-color: var(--bg);
     font-family: sans-serif;
