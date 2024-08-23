@@ -59,7 +59,7 @@ body{
 
 .desactivedSection{
     opacity: 0;
-    transform: translateX(-10vmin);
+    transform: translateX(-5vmin);
 }
 
 h1{
