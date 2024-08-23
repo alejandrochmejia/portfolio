@@ -21,6 +21,7 @@
   .space {
     position: absolute;
     background: var(--bg);
+    transition: background 0.2s ease-out;
   }
   
   .particle,
