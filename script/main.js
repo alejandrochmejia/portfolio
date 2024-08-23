@@ -14,6 +14,44 @@ function changeColorMode(){
     }
 }
 
+function changeSection(event){
+    if (event.target.classList.contains('navSelected')){
+        return true
+    } else {
+        list = document.getElementById("container").children;
+
+        for (let child of list){
+            if(child.classList.contains('activedSection')){
+                child.classList.remove('activedSection');
+                child.classList.add('desactivedSection');
+                setTimeout(()=>{
+                    child.style.display = 'none'
+                },600);
+            }
+        }
+        
+        setTimeout(()=>{
+            if (event.target.innerHTML == "Home"){
+                document.getElementById('home').style.display = 'flex';
+                document.getElementById('home').classList.remove('desactivedSection');
+                document.getElementById('home').classList.add('activedSection');
+            } else if (event.target.innerHTML == "Info"){
+                document.getElementById('info').style.display = 'flex';
+                document.getElementById('info').classList.remove('desactivedSection');
+                document.getElementById('info').classList.add('activedSection');
+            } else if (event.target.innerHTML == "Projects"){
+                document.getElementById('projects').style.display = 'flex';
+                document.getElementById('projects').classList.remove('desactivedSection');
+                document.getElementById('projects').classList.add('activedSection');
+            } else if (event.target.innerHTML == "Contact"){
+                document.getElementById('contact').style.display = 'flex';
+                document.getElementById('contact').classList.remove('desactivedSection');
+                document.getElementById('contact').classList.add('activedSection');
+            }
+        },1000);
+    }
+}
+
 function deselect(){
     elements = document.getElementsByClassName('navSelected');
     elements[0].classList.remove('navSelected')
@@ -22,6 +60,6 @@ function deselect(){
 function select(event){
     let element = event.target;
     deselect();
+    changeSection(event);
     element.classList.add('navSelected')
 }
-
