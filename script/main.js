@@ -33,22 +33,30 @@ function changeSection(event){
         setTimeout(()=>{
             if (event.target.innerHTML == "Home"){
                 document.getElementById('home').style.display = 'flex';
-                document.getElementById('home').classList.remove('desactivedSection');
-                document.getElementById('home').classList.add('activedSection');
+                setTimeout(()=>{
+                    document.getElementById('home').classList.remove('desactivedSection');
+                    document.getElementById('home').classList.add('activedSection');
+                },500)
             } else if (event.target.innerHTML == "Info"){
                 document.getElementById('info').style.display = 'flex';
-                document.getElementById('info').classList.remove('desactivedSection');
-                document.getElementById('info').classList.add('activedSection');
+                setTimeout(()=>{
+                    document.getElementById('info').classList.remove('desactivedSection');
+                    document.getElementById('info').classList.add('activedSection');
+                },500)
             } else if (event.target.innerHTML == "Projects"){
                 document.getElementById('projects').style.display = 'flex';
-                document.getElementById('projects').classList.remove('desactivedSection');
-                document.getElementById('projects').classList.add('activedSection');
+                setTimeout(()=>{
+                    document.getElementById('projects').classList.remove('desactivedSection');
+                    document.getElementById('projects').classList.add('activedSection');
+                },500)
             } else if (event.target.innerHTML == "Contact"){
                 document.getElementById('contact').style.display = 'flex';
-                document.getElementById('contact').classList.remove('desactivedSection');
-                document.getElementById('contact').classList.add('activedSection');
+                setTimeout(()=>{
+                    document.getElementById('contact').classList.remove('desactivedSection');
+                    document.getElementById('contact').classList.add('activedSection');
+                },500)
             }
-        },1000);
+        },600);
     }
 }
 

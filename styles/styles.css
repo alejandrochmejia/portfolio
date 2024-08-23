@@ -194,6 +194,7 @@ h1 h2{
 #projects{
     display: none;
     color: var(--color);
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
 }
 
 #contact{
@@ -204,6 +205,7 @@ h1 h2{
     align-items: center;
     text-align: center;
     color: var(--color);
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
 }
 
 #contact form{
