@@ -15,7 +15,11 @@ body{
 }
 
 a{
-    color: var(--color)
+    color: var(--color);
+}
+
+.projects{
+    margin: 2.5dvh 0;
 }
 
 #navList{
