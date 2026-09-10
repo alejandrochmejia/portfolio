@@ -1,0 +1,41 @@
+:root {
+  --void: #050506;
+  --ink: #f7f5f2;
+  --display: 'Anton', 'Haettenschweiler', 'Arial Narrow', Impact, sans-serif;
+  --ui: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  color-scheme: dark;
+  font-family: var(--ui);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--ink);
+  overscroll-behavior-y: none;
+}
+
+#root {
+  min-height: 100%;
+  isolation: isolate;
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--void);
+}

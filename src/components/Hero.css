@@ -1,0 +1,85 @@
+.hero {
+  position: relative;
+  width: 100%;
+  height: 100svh;
+  overflow: clip;
+  background: var(--void);
+  container-type: inline-size;
+}
+
+/* Real heading: carries the name for search and assistive tech, and paints the
+   first frame before the shader takes over. */
+.hero__name {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4cqw;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 0.8;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+  transform: rotate(-2.5deg);
+  transform-origin: 50% 50%;
+  filter: blur(0.7cqw) contrast(1.4) brightness(0.92);
+  transition: opacity 900ms ease 200ms;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hero__line {
+  display: block;
+}
+
+/* Sized per line so both spans run edge to edge, matching the shader layout.
+   The ratios come from measuring Anton at this tracking. */
+.hero__line:first-child {
+  font-size: 20cqw;
+}
+
+.hero__line:last-child {
+  font-size: 30.5cqw;
+}
+
+.hero[data-liquid='on'] .hero__name {
+  opacity: 0;
+}
+
+/* No WebGL: fall back to an SVG turbulence displacement, which gets close. */
+.hero[data-liquid='off'] .hero__name {
+  filter: url(#liquid-fallback);
+}
+
+.hero__defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__name {
+    transition-duration: 300ms;
+  }
+}
+
+/* Matches the single-line layout the shader switches to on very wide frames. */
+@media (min-aspect-ratio: 41 / 20) {
+  .hero__name {
+    flex-direction: row;
+    gap: 0.22em;
+  }
+
+  .hero__line:first-child,
+  .hero__line:last-child {
+    font-size: 12.4cqw;
+  }
+}
