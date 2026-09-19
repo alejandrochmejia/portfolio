@@ -12,16 +12,28 @@
   display: block;
 }
 
-/* Grain overlay — a touch of film noise over the whole hero. */
+/* Grain overlay — film noise over the whole hero. `screen` so the grain shows
+   on the dark areas too (overlay would keep pure black black), and animated so
+   it flickers like real film grain. */
 .hero__grain {
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  opacity: 0.09;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
+  opacity: 0.16;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  will-change: background-position;
+  animation: hero-grain 0.5s steps(4) infinite;
+}
+
+@keyframes hero-grain {
+  0% { background-position: 0 0; }
+  25% { background-position: -42px 24px; }
+  50% { background-position: 32px -30px; }
+  75% { background-position: -22px -42px; }
+  100% { background-position: 26px 18px; }
 }
 
 /* Y2K sparkles. */
@@ -106,7 +118,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero__star {
+  .hero__star,
+  .hero__grain {
     animation: none;
   }
 }
