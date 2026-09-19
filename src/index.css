@@ -1,15 +1,12 @@
 :root {
-  --void: #050506;
-  --ink: #f7f5f2;
-  --display: 'Anton', 'Haettenschweiler', 'Arial Narrow', Impact, sans-serif;
-  --ui: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --bg: #0b0b0d;
+  --fg: #f5f5f4;
+  --muted: #8a8a90;
 
   color-scheme: dark;
-  font-family: var(--ui);
-  font-synthesis: none;
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 *,
@@ -25,9 +22,8 @@ body {
 
 body {
   margin: 0;
-  background: var(--void);
-  color: var(--ink);
-  overscroll-behavior-y: none;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 #root {
@@ -35,7 +31,33 @@ body {
   isolation: isolate;
 }
 
-::selection {
-  background: var(--ink);
-  color: var(--void);
+.app {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.app__badge {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--fg);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.app__title {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 700;
+}
+
+.app__hint {
+  margin: 0;
+  color: var(--muted);
 }
