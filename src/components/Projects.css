@@ -1,0 +1,346 @@
+.projects {
+  position: relative;
+  background: var(--bg);
+  padding: clamp(4rem, 10vh, 9rem) 6vw clamp(5rem, 12vh, 10rem);
+  overflow: clip;
+}
+
+/* Film grain, matching the hero. */
+.projects__grain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.14;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  animation: hero-grain 0.5s steps(4) infinite;
+}
+
+.projects__head {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin-bottom: clamp(2.5rem, 6vh, 5rem);
+}
+
+.projects__kicker {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.projects__title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(3rem, 11vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.projects__sub {
+  margin: 1rem 0 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.projects__grid {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(2.5rem, 5vw, 3.5rem) clamp(1.5rem, 3vw, 3rem);
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* ---- One CD ---- */
+.cd-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  width: 240px;
+}
+
+.cd {
+  width: 240px;
+  height: 240px;
+  perspective: 900px;
+  cursor: pointer;
+  outline: none;
+}
+
+.cd:focus-visible {
+  outline: 2px solid #8bb8ff;
+  outline-offset: 8px;
+  border-radius: 50%;
+}
+
+/* Tilt layer — follows the cursor, snappy. */
+.cd__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.18s ease-out;
+}
+
+/* Flip layer — slow, satisfying. */
+.cd__flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateY(var(--flip, 0deg));
+  transition: transform 0.7s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+.cd[data-flipped='true'] {
+  --flip: 180deg;
+}
+
+.cd__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+/* ---- Front: the disc ---- */
+.cd__front {
+  border-radius: 50%;
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: filter 0.3s ease;
+}
+
+.cd:hover .cd__front {
+  filter: brightness(1.12);
+}
+
+.cd__disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.13) 0 1px, transparent 1px 3px),
+    conic-gradient(
+      from 0deg,
+      #ff6b6b, #feca57, #dfe94b, #48dbfb, #1dd1a1, #5f27cd, #ff9ff3, #ff6b6b
+    );
+  filter: saturate(1.5) brightness(1.05);
+  animation: cd-spin 16s linear infinite;
+}
+
+.cd:hover .cd__disc {
+  animation-duration: 5s;
+}
+
+/* Holographic highlight that tracks the cursor. */
+.cd__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0.1) 28%,
+    transparent 46%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+
+/* Inner clamp ring. */
+.cd__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 42%;
+  height: 42%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(18, 18, 22, 0.92) 0 60%,
+    rgba(255, 255, 255, 0.1) 62% 70%,
+    rgba(18, 18, 22, 0.4) 72%,
+    transparent 74%
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Centre hole. */
+.cd__hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 15%;
+  height: 15%;
+  border-radius: 50%;
+  background: #050506;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.14),
+    0 0 0 3px rgba(0, 0, 0, 0.55);
+}
+
+/* Static chrome name plate. */
+.cd__name {
+  position: absolute;
+  left: 50%;
+  bottom: 15%;
+  transform: translateX(-50%);
+  font-family: var(--display);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  background: linear-gradient(#ffffff, #cbd0d8);
+  padding: 0.18em 0.75em;
+  border-radius: 99px;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+
+.cd__hint {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.9rem;
+  color: rgba(10, 10, 12, 0.65);
+}
+
+/* ---- Back: the inlay ---- */
+.cd__back {
+  transform: rotateY(180deg);
+  border-radius: 22px;
+  padding: 1.2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, rgba(24, 26, 34, 0.96), rgba(8, 9, 13, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 45px rgba(0, 0, 0, 0.6);
+  color: #e9e9ec;
+}
+
+.cd__inlay-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cd__inlay-title {
+  margin: 0.5rem 0 0.1rem;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.9rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.cd__role {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #8bb8ff, #ff8fd0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.cd__blurb {
+  margin: 0.7rem 0 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #c7c7cc;
+}
+
+.cd__stack {
+  list-style: none;
+  margin: 0 0 auto;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cd__stack li {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  padding: 0.28em 0.6em;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #d6d6da;
+}
+
+.cd__links {
+  display: flex;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.cd__links a {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.45em 0.9em;
+  border-radius: 99px;
+  text-decoration: none;
+  color: #0a0a0a;
+  background: linear-gradient(#f4f6fa, #c9ced7);
+  transition: transform 0.15s ease;
+}
+
+.cd__links a:hover {
+  transform: translateY(-1px);
+}
+
+.cd-wrap__caption {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.cd-wrap__caption span {
+  color: var(--muted);
+  margin-right: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes cd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd__disc {
+    animation: none;
+  }
+  .cd__inner,
+  .cd__flip {
+    transition-duration: 0.3s;
+  }
+  .projects__grain {
+    animation: none;
+  }
+}
