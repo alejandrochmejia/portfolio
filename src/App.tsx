@@ -1,11 +1,11 @@
-import { Hero } from './components/Hero.tsx'
-import { Projects } from './components/Projects.tsx'
+import { Showcase } from './components/Showcase.tsx'
+import { ProjectsArchive } from './components/ProjectsArchive.tsx'
 
 export default function App() {
   return (
     <>
-      <Hero />
-      <Projects />
+      <Showcase />
+      <ProjectsArchive />
     </>
   )
 }

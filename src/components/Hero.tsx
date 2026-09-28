@@ -15,36 +15,40 @@ function Star({ className }: { className: string }) {
   )
 }
 
-export function Hero() {
+/** `frozen` pauses the 3D loop once the hero has crossfaded out of view. */
+export function Hero({ frozen = false }: { frozen?: boolean }) {
   return (
     <section className="hero">
-      <Canvas
-        className="hero__canvas"
-        dpr={[1, 2]}
-        camera={{ position: [0, 0, 6], fov: 42 }}
-        gl={{ antialias: true }}
-      >
-        <Suspense fallback={null}>
-          <Scene />
-        </Suspense>
-      </Canvas>
+      <div className="hero__inner">
+        <Canvas
+          className="hero__canvas"
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 6], fov: 42 }}
+          gl={{ antialias: true }}
+          frameloop={frozen ? 'never' : 'always'}
+        >
+          <Suspense fallback={null}>
+            <Scene />
+          </Suspense>
+        </Canvas>
 
-      <div className="hero__stars" aria-hidden="true">
-        <Star className="hero__star hero__star--a" />
-        <Star className="hero__star hero__star--b" />
-        <Star className="hero__star hero__star--c" />
+        <div className="hero__stars" aria-hidden="true">
+          <Star className="hero__star hero__star--a" />
+          <Star className="hero__star hero__star--b" />
+          <Star className="hero__star hero__star--c" />
+        </div>
+
+        <div className="hero__grain" aria-hidden="true" />
+
+        <p className="hero__tag">
+          <span>Full-Stack Developer</span>
+          <span className="hero__dot">·</span>
+          <span>AI Engineer</span>
+        </p>
       </div>
-
-      <div className="hero__grain" aria-hidden="true" />
 
       {/* Real heading for search engines and assistive tech. */}
       <h1 className="hero__sr">Alejandro Chávez — Full-Stack Developer & AI Engineer</h1>
-
-      <p className="hero__tag">
-        <span>Full-Stack Developer</span>
-        <span className="hero__dot">·</span>
-        <span>AI Engineer</span>
-      </p>
     </section>
   )
 }

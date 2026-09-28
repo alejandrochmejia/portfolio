@@ -6,6 +6,14 @@
   background: #050506;
 }
 
+/* Holds the hero visuals; JS scrubs its opacity/transform on scroll so the hero
+   rises and fades out as you leave it. */
+.hero__inner {
+  position: absolute;
+  inset: 0;
+  will-change: opacity, transform;
+}
+
 .hero__canvas {
   position: absolute;
   inset: 0;
