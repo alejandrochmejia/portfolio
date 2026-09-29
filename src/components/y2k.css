@@ -1,0 +1,107 @@
+/* ==== Shared Y2K ornaments (see y2k.tsx). Palette vars live on :root. ==== */
+
+@keyframes y2k-spin { to { transform: rotate(360deg); } }
+@keyframes y2k-blink { to { visibility: hidden; } }
+@keyframes y2k-seg {
+  0%, 100% { opacity: 0.12; }
+  10%, 80% { opacity: 1; }
+}
+
+.y2k-star {
+  display: block;
+  aspect-ratio: 1;
+  filter: drop-shadow(0 0 16px rgba(139, 184, 255, 0.35));
+  animation: y2k-spin 12s linear infinite;
+}
+
+.y2k-badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.y2k-badge svg {
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: visible;
+  animation: y2k-spin 18s linear infinite;
+}
+.y2k-badge text {
+  font-family: var(--mono);
+  font-size: 8.4px;
+  letter-spacing: 2.2px;
+  fill: #cfd3dc;
+}
+.y2k-badge__core {
+  position: absolute;
+  font-size: clamp(1rem, 1.8vw, 1.6rem);
+  background: linear-gradient(135deg, var(--blue), var(--pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.y2k-seg {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.03);
+}
+.y2k-seg i {
+  width: clamp(6px, 0.7vw, 10px);
+  height: 12px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #bcd6ff, var(--blue) 55%, #4d7fd6);
+  opacity: 0.12;
+  animation: y2k-seg 2.2s steps(1, end) infinite;
+  animation-delay: calc(var(--k) * 0.18s);
+}
+
+.y2k-dots { display: inline-flex; gap: 4px; }
+.y2k-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+.y2k-dots i:nth-child(2) { background: var(--pink); }
+.y2k-dots i:nth-child(3) { background: var(--cream); }
+
+.y2k-blink {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7dffb0;
+  box-shadow: 0 0 8px #7dffb0;
+  animation: y2k-blink 1.2s steps(2, start) infinite;
+}
+
+/* Chrome display text (Anton + metallic gradient), shared by section titles. */
+.y2k-chrome {
+  background: linear-gradient(180deg, #ffffff 0%, #c9ceda 46%, #6f7584 52%, #eef1f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 18px rgba(139, 184, 255, 0.18));
+  /* Room above the cap height so accents (Í, É…) get painted by the gradient. */
+  padding-top: 0.14em;
+}
+.y2k-chrome sup {
+  font-size: 0.32em;
+  vertical-align: 1.6em;
+  margin-left: 0.08em;
+  background: linear-gradient(135deg, var(--blue), var(--pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .y2k-star,
+  .y2k-badge svg,
+  .y2k-seg i,
+  .y2k-blink { animation: none; }
+  .y2k-seg i { opacity: 1; }
+}

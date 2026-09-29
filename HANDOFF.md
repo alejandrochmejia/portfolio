@@ -8,11 +8,14 @@ Vite 8 (rolldown) + React 19 (React Compiler activo en `vite.config.ts`) + TypeS
 
 ## Arquitectura (`src/components/`)
 - `World.tsx` — wrapper del `<Canvas>` (cámara `[0,0,6]`, fov 42) + overlay DOM + interacción (scroll→progress, paneo, tooltip, panel de detalle). `dpr={[1, QUALITY.maxDpr]}`, `frameloop={past?'never':'always'}`.
-- `WorldScene.tsx` — composición 3D: `<HeroRig/>` + `<AboutMarquee/>` + `PROJECTS.map(<FieldOrb/>)` + Sparkles + Environment. Avanza el `pan` y la salida del hero.
+- `WorldScene.tsx` — composición 3D: `<HeroRig/>` + `<AboutMarquee/>` + Sparkles + Environment. Maneja la salida del hero.
 - `HeroRig.tsx` — piezas del hero. NO tocar salvo pedido.
 - `AboutMarquee.tsx` — sección "Sobre mí" (barril). **Terminada y aprobada por el usuario**, ver abajo.
-- `FieldOrb.tsx` — una burbuja de proyecto (ícono + nombre + vidrio + hover/click). Entrada/salida por `FIELD_IN/FIELD_OUT`.
-- `fieldLayout.ts` — layout por columnas del campo de proyectos: `slotFor`, `COL_GAP`, `MAX_PAN`, `clamp`.
+- `ProjectsCollage.tsx` + `.css` — **sección Proyectos rediseñada (2026-09-29, BASE en progreso)**: collage DOM sobre el canvas, ref **studiofreight.com** (cuadrícula dispersa, título al centro). Tiles = "ventanas OS Y2K" redondeadas con borde cromado, barra con 3 puntos azul/rosa/crema, host y número; decor Y2K (estrella cromada, badge circular giratorio, contador "09 ONLINE", barra "Loading work…"). Entrada escalonada por `data-active` (fase `field`), parallax por scroll (`--t`) y puntero (`--mx/--my`) que escribe `World.tsx`. Hover base: lift + borde conic giratorio + scanlines + glitch RGB del ícono + atenúa el resto. Click → panel `.detail`. **Hover/click definitivos: pendientes de decidir con el usuario.**
+- `y2k.tsx` + `y2k.css` — **ornamentos Y2K compartidos** (About + Proyectos): `ChromeStar`, `RingBadge`, `SegLoader`, `WindowDots`, `Blink` y la clase `.y2k-chrome` (título Anton con degradado cromado; `padding-top` para que se pinten las tildes). Paleta `--blue/--pink/--cream/--rim/--mono` en `:root` (`index.css`).
+- `AboutHud.tsx` + `.css` — overlay Y2K de "Sobre mí" (2026-09-29): título cromado "SOBRE MÍ✦", dos estrellas, scanlines CRT + viñeta. El usuario pidió **quitar** el chip `about_me.exe`, el subtítulo "01 — Quién soy", el panel "Loading profile" y el sello circular; no volver a ponerlos. Reemplaza al antiguo `.world__about`.
+- `collageLayout.ts` — posiciones del collage: desktop 7×5 (`d`) y móvil 3×7 (`m`), `depth` de parallax, `entryOrder`. Pickop y Roda son 2×2 (featured).
+- Los orbes 3D (`FieldOrb.tsx`, `fieldLayout.ts`, `iconTextures.ts`) y las flechas de paneo/tooltip **se eliminaron**. `projectsData.ts` ganó `accent` (tinte del tile) y `cover?` (captura opcional; si existe reemplaza al ícono).
 - `choreography.ts` — ventanas de scroll (una sola fuente de verdad): `track(p,a,b)` y `HERO_OUT=[0.03,0.11]`, `ABOUT_IN=[0.14,0.22]`, `ABOUT_OUT=[0.34,0.42]`, `FIELD_IN=[0.47,0.57]`, `FIELD_OUT=[0.86,0.96]`.
 - `quality.ts` — calidad por dispositivo (`maxDpr`, `samples`, `resolution`, `sparkles`, `transmissionSampler`).
 - `iconTextures.ts` — `makeGlowTexture` y `makeRoundedMask`.
@@ -21,7 +24,7 @@ Vite 8 (rolldown) + React 19 (React Compiler activo en `vite.config.ts`) + TypeS
 - `World.css` — overlay (`.world` 440vh, `.world__pin` sticky, títulos por fase, flechas `.world__nav`, panel `.detail`).
 
 ## Fases del scroll (sección `.world` de 440vh, sticky)
-`progress` 0..1. `p<0.13` → `name` (hero), `0.13–0.45` → `about` (barril + título "SOBRE MÍ / 01 — Quién soy"), `0.45–0.93` → `field` (proyectos + "PROYECTOS / 02 — Selected work"), `>0.93` → `none`.
+`progress` 0..1. `p<0.13` → `name` (hero), `0.13–0.45` → `about` (barril + título "SOBRE MÍ / 01 — Quién soy"), `0.45–0.93` → `field` (collage de proyectos, título dentro del collage), `>0.93` → `none`.
 
 Para saltar a una fase en el navegador (viewport 1440×900):
 ```js
@@ -45,6 +48,8 @@ Referencia visual: **https://ham7a311.dev** (sección "ledger"). Efecto: texto p
   3. FULL STACK DEVELOPER / AI & COMPUTER ENGINEER (`#f6ecd4`)
   4. FROM VENEZUELA / BORN IN CCS · NOW IN VALENCIA (`#f6ecd4`)
   Tamaños: números 3.0, palabras 1.35, etiquetas 0.5. `width` por columna estimado a ojo para Anton (4.2 / 5.6 / 7.2 / 7.2), `GAP = 1.2`.
+
+**Detalles Y2K dentro del barril (2026-09-29):** sombra desplazada de contraste en los textos grandes (`outlineOffsetX/Y 3.5%`, mapa `SHADOW`), leve brillo neón en las etiquetas y estrellas cromadas 3D (`Spark`, extrusión metálica) en los huecos entre columnas. Los índices `[ 01 / 04 ]` se probaron y el usuario pidió quitarlos. Se probó un material "cromo tintado" y se descartó porque deslavaba los colores. La geometría aprobada (R, AXIS_Z, STRETCH) NO se tocó.
 
 **Perillas de ajuste:** `STRETCH` (alargamiento), `R` y `AXIS_Z` (intensidad del barril: más chico/más negativo = más exagerado), `bigSize`/`labelSize` (tamaño). Historial de calibración: `R=5.5, AXIS_Z=-2.5, STRETCH=1.7` resultó **demasiado** intenso/alargado; `R=9, AXIS_Z=3, sin stretch` quedó **demasiado** suave. El valor actual es el aprobado.
 

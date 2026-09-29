@@ -1,7 +1,7 @@
-import { useMemo, useRef, type MutableRefObject, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type MutableRefObject, type ReactNode } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Text } from '@react-three/drei'
-import { type Group, type PerspectiveCamera } from 'three'
+import { ExtrudeGeometry, MeshPhysicalMaterial, Shape, type Group, type Mesh, type PerspectiveCamera } from 'three'
 import { track, ABOUT_IN, ABOUT_OUT } from './choreography.ts'
 
 const FONT = '/fonts/Anton-Regular.ttf'
@@ -67,6 +67,8 @@ type Item = {
 const CREAM = '#f6ecd4'
 const BLUE = '#8bb8ff'
 const PINK = '#ff8fd0'
+/** Y2K offset "drop" behind the big lettering, in a contrasting palette tone. */
+const SHADOW: Record<string, string> = { [BLUE]: '#c2459a', [PINK]: '#3f63b8', [CREAM]: '#4a5fa8' }
 
 const ITEMS: Item[] = [
   { big: '3+', bigSize: 3.0, color: BLUE, label: 'YEARS OF\nEXPERIENCE', labelSize: 0.5, width: 4.2 },
@@ -77,6 +79,38 @@ const ITEMS: Item[] = [
 
 const GAP = 1.2
 
+/** Four-point sparkle (✦) as a thin extruded chrome shape. */
+function makeStarGeometry() {
+  const k = 0.14 // pinch of the curves toward the centre
+  const s = new Shape()
+  s.moveTo(0, 1)
+  s.quadraticCurveTo(k, k, 1, 0)
+  s.quadraticCurveTo(k, -k, 0, -1)
+  s.quadraticCurveTo(-k, -k, -1, 0)
+  s.quadraticCurveTo(-k, k, 0, 1)
+  const g = new ExtrudeGeometry(s, { depth: 0.12, bevelEnabled: true, bevelSize: 0.04, bevelThickness: 0.04, bevelSegments: 3, curveSegments: 16 })
+  g.center()
+  return g
+}
+
+/** A chrome sparkle riding the wall between two columns, spinning slowly. */
+function Spark({ geometry, material, phase }: { geometry: ExtrudeGeometry; material: MeshPhysicalMaterial; phase: number }) {
+  const m = useRef<Mesh>(null)
+  useFrame((state) => {
+    const t = state.clock.elapsedTime + phase
+    if (m.current) {
+      m.current.rotation.z = t * 0.6
+      m.current.rotation.y = Math.sin(t * 0.8) * 0.5
+    }
+  })
+  // Undo the column's vertical stretch so the star stays a star.
+  return (
+    <group position={[0, 1.25, 0.05]} scale={[0.42, 0.42 / STRETCH, 0.42]}>
+      <mesh ref={m} geometry={geometry} material={material} />
+    </group>
+  )
+}
+
 /** The "Sobre mí" phase: the stats ride the inner wall of a barrel around the
  *  camera, emerging on the right and disappearing on the left as you scroll. */
 export function AboutMarquee({ progress }: { progress: MutableRefObject<number> }) {
@@ -86,6 +120,20 @@ export function AboutMarquee({ progress }: { progress: MutableRefObject<number> 
   const aspect = useThree((s) => s.size.width / s.size.height)
   // Arc position of the screen's side edges on the wall (adapts to aspect).
   const edge = R * edgeAngle(camera.position.z, camera.fov, aspect)
+
+  // The sparkle geometry + its chrome material.
+  const assets = useMemo(() => {
+    const star = makeStarGeometry()
+    const starMat = new MeshPhysicalMaterial({ color: '#ffffff', metalness: 1, roughness: 0.12, clearcoat: 1, envMapIntensity: 1.8 })
+    return { star, starMat }
+  }, [])
+  useEffect(
+    () => () => {
+      assets.star.dispose()
+      assets.starMat.dispose()
+    },
+    [assets],
+  )
 
   const { placed, start, end } = useMemo(() => {
     let run = 0
@@ -126,6 +174,11 @@ export function AboutMarquee({ progress }: { progress: MutableRefObject<number> 
             position={[0, -0.12, 0]}
             letterSpacing={0.01}
             curveRadius={R}
+            outlineWidth={0}
+            outlineOffsetX="3.5%"
+            outlineOffsetY="3.5%"
+            outlineColor={SHADOW[it.color]}
+            outlineOpacity={0.85}
           >
             {it.big}
           </Text>
@@ -141,9 +194,19 @@ export function AboutMarquee({ progress }: { progress: MutableRefObject<number> 
             position={[0, -0.02, 0]}
             letterSpacing={0.02}
             curveRadius={R}
+            outlineWidth="4%"
+            outlineBlur="40%"
+            outlineColor={it.color}
+            outlineOpacity={0.16}
           >
             {it.label}
           </Text>
+        </Segment>
+      ))}
+      {/* Chrome sparkles in the gaps between columns. */}
+      {placed.slice(0, -1).map(({ it, baseX }, i) => (
+        <Segment key={`spark-${i}`} baseX={baseX + it.width / 2 + GAP / 2} off={off}>
+          <Spark geometry={assets.star} material={assets.starMat} phase={i * 1.7} />
         </Segment>
       ))}
     </group>

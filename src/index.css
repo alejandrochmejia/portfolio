@@ -10,6 +10,12 @@
   --bg: #050506;
   --fg: #f6f5f2;
   --muted: #8a8a90;
+  --mono: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+  /* Y2K palette (shared by About + Projects). */
+  --blue: #8bb8ff;
+  --pink: #ff8fd0;
+  --cream: #f6ecd4;
+  --rim: linear-gradient(135deg, #ffffff 0%, #7d8494 28%, #f3f5fa 50%, #4f5463 74%, #dfe3eb 100%);
   --display: 'Anton', 'Arial Narrow', Impact, sans-serif;
   --ui: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
@@ -28,6 +34,11 @@
 html,
 body {
   height: 100%;
+}
+
+/* Keep the scrollbar's space when the menu locks scroll (no layout jump). */
+html {
+  scrollbar-gutter: stable;
 }
 
 body {

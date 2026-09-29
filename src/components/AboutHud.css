@@ -1,0 +1,75 @@
+/* ==== "Sobre mí" Y2K overlay (chrome title + sparkles + CRT) ==== */
+
+.ahud {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.world__overlay[data-phase='about'] .ahud { opacity: 1; }
+.world__overlay[data-open='true'] .ahud { opacity: 0; }
+
+/* Children pop in (scattered) when the phase activates. */
+.ahud > :not(.ahud__crt) {
+  opacity: 0;
+  transform: translateY(14px) scale(0.94);
+  filter: blur(6px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.55s cubic-bezier(0.2, 0.9, 0.2, 1.2),
+    filter 0.4s ease;
+}
+.world__overlay[data-phase='about'] .ahud > :not(.ahud__crt) {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* ---- Title ---- */
+.ahud__title {
+  position: absolute;
+  top: clamp(3%, 4.5vh, 6%);
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: max-content;
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  text-align: center;
+}
+
+.ahud__name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 6.4vw, 5.2rem);
+  line-height: 0.85;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.ahud__spark {
+  position: absolute;
+  width: clamp(18px, 2vw, 30px);
+}
+.ahud__spark--l { left: -2.6rem; top: 44%; animation-duration: 9s; }
+.ahud__spark--r { right: -2.2rem; top: 18%; width: clamp(12px, 1.3vw, 20px); animation-direction: reverse; }
+
+/* ---- CRT scanlines + vignette ---- */
+.ahud__crt {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+}
+
+@media (max-width: 720px) {
+  .ahud__spark--l { left: -1.6rem; }
+  .ahud__spark--r { right: -1.4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ahud > :not(.ahud__crt) { transition: opacity 0.2s ease; transform: none; filter: none; }
+}

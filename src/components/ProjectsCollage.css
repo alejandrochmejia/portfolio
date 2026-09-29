@@ -1,0 +1,351 @@
+/* ==== Projects collage (ref: studiofreight.com) in Y2K liquid-glass ====
+   World writes on .collage:
+     --t   0..1 scroll progress through the projects phase (parallax drift)
+     --mx  -1..1 pointer x, --my -1..1 pointer y (pointer parallax)          */
+
+@property --spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.collage {
+  --t: 0.5;
+  --mx: 0;
+  --my: 0;
+  --gap: clamp(8px, 0.9vw, 14px);
+  --radius: clamp(12px, 1.3vw, 20px);
+
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.collage[data-active='true'] { pointer-events: auto; }
+
+.collage__grid {
+  position: absolute;
+  inset: clamp(56px, 8vh, 84px) clamp(12px, 1.6vw, 28px) clamp(40px, 6vh, 64px);
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+.collage__cell {
+  grid-column: var(--c) / span var(--cs);
+  grid-row: var(--r) / span var(--rs);
+  min-width: 0;
+  min-height: 0;
+  /* Depth parallax: deeper tiles drift more with scroll and pointer. */
+  transform: translate3d(
+    calc(var(--mx) * var(--z) * -12px),
+    calc((0.5 - var(--t)) * var(--z) * 110px + var(--my) * var(--z) * -10px),
+    0
+  );
+  will-change: transform;
+}
+
+/* ---- Entry / exit: scattered pop-in while the phase is active ---- */
+.collage__pop {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform: translateY(18px) scale(0.86);
+  filter: blur(8px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.5s cubic-bezier(0.2, 0.9, 0.2, 1.2),
+    filter 0.4s ease;
+  transition-delay: calc(var(--o) * 18ms);
+}
+.collage[data-active='true'] .collage__pop {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition-delay: calc(var(--o) * 55ms);
+}
+
+/* ---- Centre title ---- */
+.ctitle {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 0.35rem;
+}
+.ctitle__name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 6.4vw, 6rem);
+  line-height: 0.85;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+/* ---- Project tile: rounded Y2K "OS window" with a chrome rim ---- */
+.tile {
+  --accent: var(--blue);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(160deg, rgba(24, 26, 36, 0.92), rgba(8, 9, 14, 0.96)) padding-box,
+    var(--rim) border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 18px 40px -18px rgba(0, 0, 0, 0.8);
+  color: var(--fg, #f6f5f2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+}
+.tile {
+  transition:
+    opacity 0.35s ease,
+    transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1.2),
+    filter 0.35s ease,
+    box-shadow 0.3s ease;
+}
+
+.tile__bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: clamp(18px, 2.2vh, 24px);
+  padding: 0 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01));
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.tile__host {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile__num { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.tile__screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  margin: 5px;
+  border-radius: calc(var(--radius) - 6px);
+  overflow: hidden;
+  background:
+    radial-gradient(90% 80% at 30% 20%, color-mix(in oklab, var(--accent) 38%, transparent), transparent 65%),
+    radial-gradient(80% 70% at 85% 100%, rgba(255, 143, 208, 0.14), transparent 60%),
+    #0b0d13;
+}
+/* Faint pixel grid — the "monitor" texture. */
+.tile__screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 14px 14px;
+  mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 80%);
+  pointer-events: none;
+}
+
+.tile__cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tile__icon {
+  position: relative;
+  width: clamp(34px, 32%, 110px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1.3);
+}
+.tile[data-featured='true'] .tile__icon { width: clamp(60px, 26%, 150px); }
+.tile__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 22%;
+  filter: drop-shadow(0 8px 22px color-mix(in oklab, var(--accent) 55%, transparent));
+}
+/* Glossy Y2K highlight over the icon. */
+.tile__icon::after {
+  content: '';
+  position: absolute;
+  inset: 0 8% 52% 8%;
+  border-radius: 50% 50% 40% 40% / 70% 70% 30% 30%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* Scanlines, revealed on hover. */
+.tile__scan {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 3px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.tile__meta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.9rem 0.8rem 0.65rem;
+  background: linear-gradient(0deg, rgba(5, 5, 8, 0.92) 30%, transparent);
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.2, 1);
+  pointer-events: none;
+}
+.tile[data-featured='true'] .tile__meta { transform: none; }
+.tile__title {
+  font-family: var(--display);
+  font-size: clamp(0.95rem, 1.35vw, 1.35rem);
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+.tile[data-featured='true'] .tile__title { font-size: clamp(1.3rem, 2.4vw, 2.3rem); }
+.tile__role {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--blue), var(--pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---- Base hover (to be refined) ---- */
+@media (hover: hover) {
+  .collage[data-active='true'] .tile:hover {
+    transform: translateY(-4px) scale(1.025);
+    background:
+      linear-gradient(160deg, rgba(28, 30, 42, 0.94), rgba(9, 10, 16, 0.97)) padding-box,
+      conic-gradient(from var(--spin), var(--blue), #ffffff, var(--pink), #7d8494, var(--blue)) border-box;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent),
+      0 24px 60px -20px color-mix(in oklab, var(--accent) 60%, transparent);
+    animation: rim-spin 2.4s linear infinite;
+  }
+  .tile:hover .tile__meta { transform: none; }
+  .tile:hover .tile__scan { opacity: 1; }
+  .tile:hover .tile__icon { transform: translateY(-16%) scale(1.06) rotate(-3deg); }
+  .tile[data-featured='true']:hover .tile__icon { transform: scale(1.1) rotate(-3deg); }
+  .tile:hover .tile__icon img { animation: rgb-glitch 0.45s steps(2, end) 1; }
+
+  /* Everything else steps back while one tile is hovered. */
+  .collage__grid:has(.tile:hover) :is(.tile, .decor, .ctitle):not(:hover) {
+    opacity: 0.4;
+    filter: saturate(0.3);
+  }
+  .decor, .ctitle { transition: opacity 0.35s ease, filter 0.35s ease; }
+}
+.tile:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+@keyframes rim-spin { to { --spin: 360deg; } }
+@keyframes rgb-glitch {
+  0% { filter: drop-shadow(-3px 0 0 rgba(255, 60, 120, 0.8)) drop-shadow(3px 0 0 rgba(60, 160, 255, 0.8)); transform: translateX(2px); }
+  50% { filter: drop-shadow(3px 0 0 rgba(255, 60, 120, 0.8)) drop-shadow(-3px 0 0 rgba(60, 160, 255, 0.8)); transform: translateX(-2px) skewX(-6deg); }
+  100% { transform: none; }
+}
+
+/* ---- Decor tiles (Y2K filler in the gaps) ---- */
+.decor {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+}
+
+.decor--star .y2k-star { width: min(62%, 120px); }
+.decor--badge .y2k-badge { width: min(80%, 150px); }
+
+.decor--count,
+.decor--loader {
+  align-content: center;
+  gap: 0.5rem;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+}
+.decor__big {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 4.6vw, 4.6rem);
+  line-height: 0.85;
+  background: var(--rim);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.decor__label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #cfd3dc;
+}
+.decor__label--dim { color: var(--muted, #8a8a90); }
+/* ---- Mobile: 3 × 7 grid, featured tiles collapse to single cells ---- */
+@media (max-width: 720px) {
+  .collage__grid {
+    inset: 64px 12px 56px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+  }
+  .collage__cell {
+    grid-column: var(--mc) / span var(--mcs);
+    grid-row: var(--mr) / span var(--mrs);
+  }
+  .collage__cell[data-mobile='hide'] { display: none; }
+  .tile[data-featured='true'] .tile__icon { width: clamp(34px, 32%, 110px); }
+  .tile[data-featured='true'] .tile__meta { transform: translateY(100%); }
+  .tile__host { display: none; }
+  .ctitle__name { font-size: clamp(2.6rem, 14vw, 4rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collage__cell { transform: none; }
+  .collage__pop,
+  .tile,
+  .tile__meta,
+  .tile__icon { transition: opacity 0.2s ease !important; }
+  .tile:hover,
+  .tile:hover .tile__icon img { animation: none !important; }
+}

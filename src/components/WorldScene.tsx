@@ -1,39 +1,22 @@
-import { useMemo, useRef, type MutableRefObject } from 'react'
+import { useRef, type MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Environment, Lightformer, Sparkles, useTexture } from '@react-three/drei'
-import { SRGBColorSpace, type Group, type Texture } from 'three'
-import { PROJECTS } from './projectsData.ts'
+import { Environment, Lightformer, Sparkles } from '@react-three/drei'
+import { type Group } from 'three'
 import { HeroRig } from './HeroRig.tsx'
-import { FieldOrb } from './FieldOrb.tsx'
 import { AboutMarquee } from './AboutMarquee.tsx'
-import { clamp, MAX_PAN } from './fieldLayout.ts'
 import { track, HERO_OUT } from './choreography.ts'
 import { QUALITY } from './quality.ts'
-import { makeGlowTexture, makeRoundedMask } from './iconTextures.ts'
 
 type Props = {
   progress: MutableRefObject<number>
-  pan: MutableRefObject<number>
-  panDir: MutableRefObject<number>
-  selected: MutableRefObject<number | null>
-  onHover: (i: number | null) => void
-  onSelect: (i: number) => void
 }
 
-const PAN_SPEED = 1.7 // world units per second while an arrow is hovered
-
-/** The single 3D world: the hero rig (which scrolls away) and the floating field
- *  of project orbs, lit by a studio env. All motion is ref-driven in useFrame. */
-export function WorldScene({ progress, pan, panDir, selected, onHover, onSelect }: Props) {
+/** The single 3D world: the hero rig (which scrolls away) and the About barrel,
+ *  lit by a studio env. The projects collage is DOM, layered over this canvas. */
+export function WorldScene({ progress }: Props) {
   const heroRef = useRef<Group>(null)
 
-  // App icons as textures (one per project, same order as PROJECTS).
-  const icons = useTexture(PROJECTS.map((p) => p.icon)) as Texture[]
-  icons.forEach((t) => (t.colorSpace = SRGBColorSpace))
-  const glow = useMemo(makeGlowTexture, [])
-  const mask = useMemo(makeRoundedMask, [])
-
-  useFrame((_, delta) => {
+  useFrame(() => {
     const p = progress.current ?? 0
     // Hero rises + shrinks away on a short scroll — it leaves as the About arrives.
     const nf = track(p, HERO_OUT[0], HERO_OUT[1])
@@ -42,8 +25,6 @@ export function WorldScene({ progress, pan, panDir, selected, onHover, onSelect 
       heroRef.current.scale.setScalar(1 - 0.9 * nf)
       heroRef.current.visible = nf < 1
     }
-    // Advance the horizontal pan while an arrow is hovered (held direction).
-    pan.current = clamp(pan.current + panDir.current * PAN_SPEED * delta, 0, MAX_PAN)
   })
 
   return (
@@ -57,22 +38,6 @@ export function WorldScene({ progress, pan, panDir, selected, onHover, onSelect 
       </group>
 
       <AboutMarquee progress={progress} />
-
-      {PROJECTS.map((proj, i) => (
-        <FieldOrb
-          key={proj.title}
-          project={proj}
-          index={i}
-          icon={icons[i]}
-          glow={glow}
-          mask={mask}
-          progress={progress}
-          pan={pan}
-          selected={selected}
-          onHover={onHover}
-          onSelect={onSelect}
-        />
-      ))}
 
       <Sparkles count={QUALITY.sparkles} scale={[14, 8, 4]} size={3} speed={0.2} color="#ffffff" opacity={0.6} />
 

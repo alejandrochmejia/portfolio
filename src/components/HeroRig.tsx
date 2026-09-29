@@ -1,40 +1,70 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Float, Text, MeshTransmissionMaterial, MeshDistortMaterial } from '@react-three/drei'
-import { MeshPhysicalMaterial, type Group, type Mesh } from 'three'
+import { CanvasTexture, MeshPhysicalMaterial, SRGBColorSpace, type Group, type Mesh } from 'three'
 
 const FONT = '/fonts/Anton-Regular.ttf'
 
-/** The name, as 3D text behind the glass so it gets refracted. It carries its
- *  own frosted-glass material (glossy, faintly iridescent, catching the studio
- *  env), gently breathes/floats, and its transparency pulses between 0.86 and 1. */
+/** Same vertical chrome as the DOM section titles (`.y2k-chrome`): white → grey,
+ *  a dark band at ~52%, back to white. Troika's UVs span each text block, so the
+ *  gradient runs top→bottom across each line of the name. */
+function makeChromeGradient() {
+  const c = document.createElement('canvas')
+  c.width = 4
+  c.height = 256
+  const g = c.getContext('2d')!
+  const grad = g.createLinearGradient(0, 0, 0, c.height)
+  grad.addColorStop(0, '#ffffff')
+  grad.addColorStop(0.46, '#c9ceda')
+  grad.addColorStop(0.52, '#6f7584')
+  grad.addColorStop(1, '#eef1f7')
+  g.fillStyle = grad
+  g.fillRect(0, 0, c.width, c.height)
+  const tex = new CanvasTexture(c)
+  tex.colorSpace = SRGBColorSpace
+  return tex
+}
+
+/** The name, as 3D text behind the glass so it gets refracted. It carries the
+ *  same chrome gradient as the section titles on a glossy physical material
+ *  (clearcoat, catching the studio env), gently breathes/floats, and its transparency pulses between 0.86 and 1. */
 function RefractedName() {
   const group = useRef<Group>(null)
 
   // One glass material per line (a material can't be shared across two primitive
   // mounts). Physical + iridescence + clearcoat = the frosted-glass read.
+  const chrome = useMemo(makeChromeGradient, [])
   const mats = useMemo(
     () =>
       [0, 1].map(
         () =>
           new MeshPhysicalMaterial({
-            color: '#eef1f8',
-            roughness: 0.12,
-            metalness: 0.1,
-            iridescence: 1,
-            iridescenceIOR: 1.3,
+            color: '#ffffff',
+            map: chrome,
+            // Self-lit gradient so the chrome bands read like the DOM titles
+            // whatever the env does; the env still adds gloss on top.
+            emissive: '#ffffff',
+            emissiveMap: chrome,
+            emissiveIntensity: 0.3,
+            roughness: 0.18,
+            metalness: 0.6,
             clearcoat: 1,
             clearcoatRoughness: 0.12,
-            emissive: '#0c0e14',
-            envMapIntensity: 1.5,
+            envMapIntensity: 0.9,
             transparent: true,
             opacity: 0.9,
             toneMapped: false,
           }),
       ),
-    [],
+    [chrome],
   )
-  useEffect(() => () => mats.forEach((m) => m.dispose()), [mats])
+  useEffect(
+    () => () => {
+      mats.forEach((m) => m.dispose())
+      chrome.dispose()
+    },
+    [mats, chrome],
+  )
 
   useFrame((state) => {
     const t = state.clock.elapsedTime

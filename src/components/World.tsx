@@ -2,23 +2,21 @@ import { Canvas } from '@react-three/fiber'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { WorldScene } from './WorldScene.tsx'
 import { PROJECTS } from './projectsData.ts'
-import { MAX_PAN } from './fieldLayout.ts'
+import { ProjectsCollage } from './ProjectsCollage.tsx'
+import { AboutHud } from './AboutHud.tsx'
+import { track, FIELD_IN, FIELD_OUT } from './choreography.ts'
 import { QUALITY } from './quality.ts'
 import './World.css'
 
 const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b)
 
-/** Hero + a floating field of project orbs in one 3D world. Hover shows a small
- *  label; clicking an orb hides the field and opens a glass detail panel. */
+/** Hero + About in one 3D world, then the projects as a DOM collage layered over
+ *  the canvas. Clicking a tile opens a glass detail panel. */
 export function World() {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const tipRef = useRef<HTMLDivElement>(null)
+  const collageRef = useRef<HTMLDivElement>(null)
   const progress = useRef(0)
-  const pan = useRef(0)
-  const panDir = useRef(0)
-  const selected = useRef<number | null>(null)
 
-  const [hovered, setHovered] = useState<number | null>(null)
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [phase, setPhase] = useState<'name' | 'about' | 'field' | 'none'>('name')
   const [past, setPast] = useState(false)
@@ -33,6 +31,8 @@ export function World() {
       const total = Math.max(1, el.offsetHeight - window.innerHeight)
       const p = clamp(-el.getBoundingClientRect().top / total, 0, 1)
       progress.current = p
+      // Collage parallax: 0→1 across the projects phase (enter → exit).
+      collageRef.current?.style.setProperty('--t', track(p, FIELD_IN[0], FIELD_OUT[1]).toFixed(4))
       // hero → about (curved marquee) → projects, along the pinned scroll.
       setPhase(p < 0.13 ? 'name' : p < 0.45 ? 'about' : p < 0.93 ? 'field' : 'none')
       setPast(el.getBoundingClientRect().bottom <= window.innerHeight * 0.4)
@@ -50,11 +50,13 @@ export function World() {
     }
   }, [])
 
-  // Tooltip follows the cursor (no re-render).
+  // Pointer parallax for the collage (CSS vars, no re-render).
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
-      const el = tipRef.current
-      if (el) el.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`
+      const el = collageRef.current
+      if (!el) return
+      el.style.setProperty('--mx', ((e.clientX / window.innerWidth) * 2 - 1).toFixed(3))
+      el.style.setProperty('--my', ((e.clientY / window.innerHeight) * 2 - 1).toFixed(3))
     }
     window.addEventListener('pointermove', onMove, { passive: true })
     return () => window.removeEventListener('pointermove', onMove)
@@ -68,23 +70,8 @@ export function World() {
     }
   }, [selectedIdx])
 
-  // Stop panning whenever the field isn't the active, interactive layer.
-  useEffect(() => {
-    if (phase !== 'field' || selectedIdx !== null) panDir.current = 0
-  }, [phase, selectedIdx])
-
-  const open = (i: number) => {
-    selected.current = i
-    setSelectedIdx(i)
-    setHovered(null)
-    panDir.current = 0
-    document.body.style.cursor = ''
-  }
-  const canPan = MAX_PAN > 0 && phase === 'field' && selectedIdx === null
-  const close = () => {
-    selected.current = null
-    setSelectedIdx(null)
-  }
+  const open = (i: number) => setSelectedIdx(i)
+  const close = () => setSelectedIdx(null)
 
   const p = selectedIdx !== null ? PROJECTS[selectedIdx] : null
 
@@ -95,31 +82,17 @@ export function World() {
           className="world__canvas"
           dpr={[1, QUALITY.maxDpr]}
           camera={{ position: [0, 0, 6], fov: 42 }}
-          gl={{ antialias: true }}
+          // preserveDrawingBuffer: the menu's genie snapshot reads this canvas (Menu.tsx).
+          gl={{ antialias: true, preserveDrawingBuffer: true }}
           frameloop={past ? 'never' : 'always'}
         >
           <Suspense fallback={null}>
-            <WorldScene
-              progress={progress}
-              pan={pan}
-              panDir={panDir}
-              selected={selected}
-              onHover={setHovered}
-              onSelect={open}
-            />
+            <WorldScene progress={progress} />
           </Suspense>
         </Canvas>
 
         <div className="world__overlay" data-phase={phase} data-open={selectedIdx !== null}>
-          <div className="world__about">
-            <p className="world__kicker">01 — Quién soy</p>
-            <h2 className="world__section-title">Sobre mí</h2>
-          </div>
-
-          <div className="world__section">
-            <p className="world__kicker">02 — Selected work</p>
-            <h2 className="world__section-title">Proyectos</h2>
-          </div>
+          <AboutHud />
 
           <p className="world__tag">
             <span>Full-Stack Developer</span>
@@ -127,59 +100,16 @@ export function World() {
             <span>AI Engineer</span>
           </p>
           <div className="world__hint" aria-hidden="true" data-phase={phase}>
-            {phase === 'field' ? 'Toca un orbe para ver el proyecto' : 'Scroll ↓'}
+            {phase === 'field' ? 'Tap a project to open it' : 'Scroll ↓'}
           </div>
         </div>
 
-        {/* Horizontal pan arrows — hover (or hold) to glide the field. */}
-        <button
-          type="button"
-          className="world__nav world__nav--left"
-          data-show={canPan}
-          aria-label="Proyectos anteriores"
-          onPointerEnter={() => (panDir.current = -1)}
-          onPointerLeave={() => (panDir.current = 0)}
-          onPointerDown={() => (panDir.current = -1)}
-          onPointerUp={() => (panDir.current = 0)}
-        >
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          className="world__nav world__nav--right"
-          data-show={canPan}
-          aria-label="Más proyectos"
-          onPointerEnter={() => (panDir.current = 1)}
-          onPointerLeave={() => (panDir.current = 0)}
-          onPointerDown={() => (panDir.current = 1)}
-          onPointerUp={() => (panDir.current = 0)}
-        >
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </button>
-
-        {/* Hover label (few details). */}
-        <div
-          ref={tipRef}
-          className="world__tip"
-          data-show={hovered !== null && selectedIdx === null}
-          aria-hidden="true"
-        >
-          {hovered !== null && (
-            <>
-              <span className="world__tip-name">{PROJECTS[hovered].title}</span>
-              <span className="world__tip-role">{PROJECTS[hovered].role}</span>
-            </>
-          )}
-        </div>
+        <ProjectsCollage ref={collageRef} active={phase === 'field' && selectedIdx === null} onSelect={open} />
 
         {/* Detail panel — glass frame with a preview + the write-up. */}
         {p && (
           <div className="detail" role="dialog" aria-modal="true" aria-label={p.title}>
-            <button className="detail__close" onClick={close} aria-label="Cerrar">
+            <button className="detail__close" onClick={close} aria-label="Close">
               ✕
             </button>
             <div className="detail__card">
@@ -188,7 +118,7 @@ export function World() {
                 <span className="detail__preview-label">{p.demo ? new URL(p.demo).host : 'GitHub'}</span>
                 {p.demo && (
                   <a className="detail__open" href={p.demo} target="_blank" rel="noreferrer">
-                    Abrir sistema ↗
+                    Open live site ↗
                   </a>
                 )}
               </div>
@@ -201,8 +131,8 @@ export function World() {
                 <p className="detail__role">{p.role}</p>
                 <p className="detail__what">{p.blurb}</p>
                 <p className="detail__did">
-                  Mi aporte: {p.role.toLowerCase()} del proyecto — [describe aquí qué construiste, decisiones
-                  técnicas y resultados].
+                  My role: {p.role.toLowerCase()} — [describe here what you built, technical decisions and
+                  results].
                 </p>
                 {p.stack.length > 0 && (
                   <ul className="detail__stack">
@@ -219,7 +149,7 @@ export function World() {
                   )}
                   {p.repo && (
                     <a href={p.repo} target="_blank" rel="noreferrer">
-                      Código ↗
+                      Code ↗
                     </a>
                   )}
                 </div>
@@ -229,7 +159,7 @@ export function World() {
         )}
       </div>
 
-      <h1 className="world__sr">Alejandro Chávez — Full-Stack Developer & AI Engineer. Proyectos.</h1>
+      <h1 className="world__sr">Alejandro Chávez — Full-Stack Developer & AI Engineer. Projects.</h1>
     </section>
   )
 }
