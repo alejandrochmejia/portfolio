@@ -1,0 +1,418 @@
+/* ==== Tech stack: "Stack Invaders" mini-game in a Y2K OS window ==== */
+
+/* TechStack.tsx writes the scroll-driven CRT transition vars on .tstack:
+     --sx/--sy  screen scale (dot → line → full)   --beam  glowing line opacity
+     --fade     screen opacity                      --ti    title in (0..1)
+     --lift     title exit direction (0..1)         [data-fx='on'] while transitioning */
+.tstack {
+  --sx: 1;
+  --sy: 1;
+  --fade: 1;
+  --beam: 0;
+  --ti: 1;
+  --lift: 0;
+  position: relative;
+  /* Taller than the screen: the content is pinned while it powers on / off. */
+  height: 300svh;
+  background: var(--bg);
+}
+
+.tstack__pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: clip;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: clamp(1rem, 3vh, 2rem);
+  padding: clamp(40px, 7vh, 80px) clamp(12px, 3vw, 40px);
+}
+/* Content above the Sparkles backdrop (TechBackdrop.tsx). */
+.tstack__pin > :not(.tstack__bg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Title: drops in with an RGB split, lifts off blurred ---- */
+.tstack__head {
+  position: relative;
+  width: max-content;
+  opacity: var(--ti);
+  transform: translateY(calc((1 - var(--ti)) * (26px - var(--lift) * 70px)));
+  filter: blur(calc((1 - var(--ti)) * 10px))
+    drop-shadow(calc((1 - var(--ti)) * 14px) 0 0 rgba(255, 60, 140, 0.8))
+    drop-shadow(calc((1 - var(--ti)) * -14px) 0 0 rgba(60, 160, 255, 0.8));
+}
+.tstack[data-fx='off'] .tstack__head { filter: none; }
+
+/* ---- CRT power on / off ---- */
+.tstack__screen {
+  position: relative;
+  width: min(1180px, 100%);
+  display: grid;
+  place-items: center;
+}
+.tstack__tv {
+  width: 100%;
+  opacity: var(--fade);
+  transform: scale(var(--sx), var(--sy));
+  transform-origin: 50% 50%;
+}
+.tstack[data-fx='on'] .tstack__tv {
+  will-change: transform, filter;
+  /* Overexposed while it's a thin line, settling to normal as it opens. */
+  filter: brightness(calc(1 + var(--beam) * 3)) saturate(calc(1 + var(--beam)));
+}
+.tstack[data-fx='on'] .tstack__win { animation: ts-jitter 0.18s steps(2, end) infinite; }
+
+/* The glowing scan line / dot (not scaled, so its glow stays round). */
+.tstack__beam {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--sx) * 100%);
+  min-width: 4px;
+  height: 2px;
+  translate: -50% -50%;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 0 10px 2px rgba(139, 184, 255, 0.95),
+    0 0 36px 8px rgba(255, 143, 208, 0.55);
+  opacity: calc(var(--beam) * var(--fade));
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes ts-jitter {
+  0% { translate: -3px 0; }
+  50% { translate: 2px 1px; }
+  100% { translate: 0 0; }
+}
+.tstack__title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 6.4vw, 5.2rem);
+  line-height: 0.85;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.tstack__spark {
+  position: absolute;
+  width: clamp(18px, 2vw, 30px);
+}
+.tstack__spark--l { left: -2.6rem; top: 44%; animation-duration: 9s; }
+.tstack__spark--r { right: -2.2rem; top: 18%; width: clamp(12px, 1.3vw, 20px); animation-direction: reverse; }
+
+/* ---- Window ---- */
+.tstack__win {
+  --radius: clamp(14px, 1.5vw, 22px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(160deg, rgba(24, 26, 36, 0.92), rgba(8, 9, 14, 0.96)) padding-box,
+    var(--rim) border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 30px 80px -30px rgba(139, 184, 255, 0.25),
+    0 18px 40px -18px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+.tstack__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 28px;
+  padding: 0 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01));
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.tstack__host { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tstack__score {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-variant-numeric: tabular-nums;
+  color: #cfd3dc;
+}
+
+/* ---- Stage (canvas) ---- */
+.tstack__stage {
+  position: relative;
+  width: auto;
+  aspect-ratio: 16 / 9;
+  max-height: 62svh;
+  margin: 6px;
+  border-radius: calc(var(--radius) - 6px);
+  overflow: hidden;
+  background:
+    radial-gradient(80% 60% at 50% 0%, rgba(139, 184, 255, 0.16), transparent 70%),
+    radial-gradient(60% 50% at 85% 100%, rgba(255, 143, 208, 0.12), transparent 65%),
+    #07080d;
+  cursor: crosshair;
+  /* Horizontal drags steer the ship on touch; vertical ones still scroll the page. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.tstack__stage[data-armed='true'] { cursor: none; }
+/* The cursor comes back only for the "Stack complete" screen. */
+.tstack__stage[data-done='true'] { cursor: default; }
+.tstack__stage:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.tstack__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.tstack__crt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.5) 100%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px);
+}
+
+/* ---- Reveal: the tech name pops with an RGB glitch, then fades ---- */
+.tstack__reveal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 64%;
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  pointer-events: none;
+  text-align: center;
+  animation: ts-reveal 1.9s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+}
+.tstack__reveal-kind {
+  font-family: var(--mono);
+  font-size: clamp(0.56rem, 0.9vw, 0.7rem);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--c);
+  text-shadow: 0 0 10px var(--c);
+}
+.tstack__reveal-name {
+  position: relative;
+  font-family: var(--display);
+  font-size: clamp(2.2rem, 7vw, 5.6rem);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  padding-top: 0.12em;
+  background: linear-gradient(180deg, #ffffff 0%, #c9ceda 46%, #6f7584 52%, #eef1f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 22px color-mix(in oklab, var(--c) 60%, transparent));
+}
+/* Pink / blue ghost copies for the glitch split. */
+.tstack__reveal-name::before,
+.tstack__reveal-name::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  padding-top: inherit;
+  -webkit-background-clip: initial;
+  background: none;
+  mix-blend-mode: screen;
+  animation: ts-glitch 0.5s steps(2, end) 2;
+}
+.tstack__reveal-name::before { color: rgba(255, 60, 140, 0.75); --dx: -4px; }
+.tstack__reveal-name::after { color: rgba(60, 160, 255, 0.75); --dx: 4px; animation-delay: 0.06s; }
+
+@keyframes ts-reveal {
+  0% { opacity: 0; transform: translateY(18px) scale(0.8); filter: blur(8px); }
+  14% { opacity: 1; transform: translateY(0) scale(1.06); filter: none; }
+  24% { transform: scale(1); }
+  78% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-14px); }
+}
+@keyframes ts-glitch {
+  0% { transform: translateX(var(--dx)); clip-path: inset(0 0 55% 0); }
+  50% { transform: translateX(calc(var(--dx) * -1)) skewX(-8deg); clip-path: inset(45% 0 0 0); }
+  100% { transform: none; clip-path: inset(0 0 100% 0); }
+}
+
+/* ---- "Click to play" hint ---- */
+.tstack__hint {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(10, 12, 20, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+  text-align: center;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+.tstack__hint b {
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--blue), var(--pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: y2k-blink 1.2s steps(2, start) infinite;
+}
+.tstack__hint span {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ---- Completed ---- */
+.tstack__done {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.7rem;
+  text-align: center;
+  background: radial-gradient(60% 50% at 50% 50%, rgba(8, 9, 14, 0.7), transparent);
+  animation: ts-in 0.6s cubic-bezier(0.2, 0.9, 0.2, 1.2) both;
+}
+.tstack__done-kicker {
+  display: inline-flex;
+  gap: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #7dffb0;
+  text-shadow: 0 0 10px rgba(125, 255, 176, 0.6);
+}
+.tstack__done-title {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 7vw, 5.6rem);
+  line-height: 0.85;
+  text-transform: uppercase;
+}
+@keyframes ts-in {
+  from { opacity: 0; transform: scale(0.9); filter: blur(8px); }
+}
+
+/* ---- Buttons ---- */
+.tstack__btn {
+  padding: 0.55rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(40, 44, 60, 0.95), rgba(12, 13, 20, 0.95)) padding-box,
+    var(--rim) border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.2, 1.3), box-shadow 0.25s ease;
+}
+.tstack__btn:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 24px -8px rgba(255, 143, 208, 0.55);
+}
+.tstack__btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+/* ---- Inventory ---- */
+.tstack__foot {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.8rem 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tstack__inv {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tstack__inv li {
+  position: relative;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.25);
+  transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+.tstack__inv li[data-got='false'] .tstack__chip-name { opacity: 0; }
+.tstack__chip-mask {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  letter-spacing: 0;
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.14);
+}
+.tstack__inv li[data-got='true'] {
+  color: var(--c);
+  border-color: color-mix(in oklab, var(--c) 55%, transparent);
+  background: color-mix(in oklab, var(--c) 10%, transparent);
+  box-shadow: 0 0 14px -4px var(--c);
+  animation: ts-chip 0.5s cubic-bezier(0.2, 0.9, 0.2, 1.4);
+}
+@keyframes ts-chip {
+  from { transform: scale(0.6); filter: brightness(2.2); }
+}
+
+@media (max-width: 720px) {
+  .tstack__stage { aspect-ratio: 3 / 4; max-height: 58svh; }
+  .tstack__foot { flex-direction: column; align-items: stretch; }
+  .tstack__inv li { font-size: 0.56rem; padding: 0.24rem 0.5rem; }
+  .tstack__hint span { white-space: normal; }
+  .tstack__spark--l { left: -1.6rem; }
+  .tstack__spark--r { right: -1.4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tstack__reveal,
+  .tstack__reveal-name::before,
+  .tstack__reveal-name::after,
+  .tstack__hint b,
+  .tstack__inv li,
+  .tstack__done { animation-duration: 0.01s; }
+  .tstack[data-fx='on'] .tstack__win { animation: none; }
+  .tstack__head { transform: none; filter: none; }
+  .tstack__reveal { animation: ts-fade 1.9s linear forwards; }
+}
+@keyframes ts-fade {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
