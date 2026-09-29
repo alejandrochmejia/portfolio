@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="Roda">
+  <title>Roda</title>
+  <rect width="96" height="96" rx="22" fill="#0C0A09"/>
+  <g transform="translate(16 26.6) scale(1.0214)">
+    <rect x="24.83" y="0" width="37.83" height="9.6" rx="4.8" fill="#E1701F"/>
+    <rect x="0" y="16" width="50.33" height="9.6" rx="4.8" fill="#E1701F"/>
+    <rect x="18.67" y="32.3" width="24.67" height="9.6" rx="4.8" fill="#E1701F"/>
+  </g>
+</svg>

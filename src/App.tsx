@@ -1,11 +1,14 @@
-import { Showcase } from './components/Showcase.tsx'
-import { ProjectsArchive } from './components/ProjectsArchive.tsx'
+import { lazy, Suspense } from 'react'
+import { Loader } from './components/Loader.tsx'
+
+const World = lazy(() =>
+  import('./components/World.tsx').then((m) => ({ default: m.World })),
+)
 
 export default function App() {
   return (
-    <>
-      <Showcase />
-      <ProjectsArchive />
-    </>
+    <Suspense fallback={<Loader />}>
+      <World />
+    </Suspense>
   )
 }

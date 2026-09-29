@@ -4,24 +4,22 @@ export type Project = {
   year: string
   blurb: string
   stack: string[]
+  /** App icon shown inside its glass orb (path under /public). */
+  icon: string
   demo?: string
   repo?: string
-  featured?: boolean
 }
 
-/** Placeholder projects — reemplaza por los tuyos. Marca los mejores con
- *  `featured: true` (van al showcase animado); el resto cae en el archivo. */
+/** The projects shown as glass orbs in the floating field, in display order.
+ *  Appended projects extend the field rightward (revealed by the pan arrow). */
 export const PROJECTS: Project[] = [
-  { title: 'Nebula', role: 'Full-Stack · AI', year: '2025', blurb: 'Asistente conversacional con RAG.', stack: ['React', 'Node', 'LangChain', 'pgvector'], demo: '#', repo: '#', featured: true },
-  { title: 'Fluxboard', role: 'Full-Stack', year: '2024', blurb: 'Dashboard en tiempo real.', stack: ['Next.js', 'WebSocket', 'Redis', 'D3'], demo: '#', repo: '#', featured: true },
-  { title: 'Vórtex', role: 'Creative Dev', year: '2024', blurb: 'Configurador 3D en el navegador.', stack: ['Three.js', 'R3F', 'GLSL'], demo: '#', repo: '#', featured: true },
-  { title: 'Synth', role: 'AI Engineer', year: '2025', blurb: 'Gateway de APIs LLM.', stack: ['Python', 'FastAPI', 'Redis'], demo: '#', repo: '#', featured: true },
-  { title: 'Aurora', role: 'Frontend', year: '2023', blurb: 'Design system y librería de componentes.', stack: ['React', 'Storybook'], demo: '#', repo: '#' },
-  { title: 'Relay', role: 'Backend', year: '2023', blurb: 'Infraestructura de chat en tiempo real.', stack: ['Go', 'gRPC', 'NATS'], demo: '#', repo: '#' },
-  { title: 'Pulse', role: 'Full-Stack', year: '2022', blurb: 'Plataforma de analítica de producto.', stack: ['Vue', 'ClickHouse'], demo: '#', repo: '#' },
-  { title: 'Forge', role: 'Dev Tools', year: '2023', blurb: 'Toolkit de CLI para scaffolding.', stack: ['Rust', 'WASM'], demo: '#', repo: '#' },
+  { title: 'Pickop', role: 'Full-Stack', year: '2025', blurb: 'Sistema completo.', stack: [], icon: '/icons/pickop.png', demo: 'https://pickop.app' },
+  { title: 'Roda', role: 'Full-Stack', year: '2025', blurb: 'Sistema completo.', stack: [], icon: '/icons/roda-v3.svg', demo: 'https://roda.club' },
+  { title: 'Botinfy.com', role: 'Landing · Demos', year: '2025', blurb: 'Landing y página de demos (demos.botinfy.com).', stack: [], icon: '/icons/botinfy.png', demo: 'https://botinfy.com' },
+  { title: 'Encuéntralos VZLA', role: 'Backend · Data', year: '2024', blurb: 'Manejo de la data y la base de datos.', stack: [], icon: '/icons/encuentralos.svg', demo: 'https://encuentralosvzla.com' },
+  { title: 'Mediart', role: 'Dev Support', year: '2024', blurb: 'Apoyo dev en un proyecto universitario.', stack: [], icon: '/icons/mediart.png', demo: 'https://mediart.jesusaraujo.lat', repo: 'https://github.com/JesusAraujoDEV/mediart' },
+  { title: 'Drinkers', role: 'Frontend · Ecommerce', year: '2023', blurb: 'Landing de ecommerce.', stack: [], icon: '/icons/drinkers.png', repo: 'https://github.com/alejandrochmejia/drinkers' },
+  { title: 'Pago Móvil Manager', role: 'Full-Stack', year: '2024', blurb: 'Gestor de pagos móviles.', stack: [], icon: '/icons/pagomovil.png', repo: 'https://github.com/alejandrochmejia/pagomovil-manager' },
+  { title: 'Sistema de Restaurante', role: 'Full-Stack', year: '2023', blurb: 'Sistema de gestión integral para restaurante (Bistrot).', stack: [], icon: '/icons/bistrot.png', repo: 'https://github.com/angelopol/bistrot' },
+  { title: 'Charlotte Bistró', role: 'Frontend', year: '2024', blurb: 'Sistema de interfaces y control para Charlotte Bistró.', stack: [], icon: '/icons/charlotte.png', demo: 'https://interfaces-control.vercel.app', repo: 'https://github.com/JesusAraujoDEV/interfaces-control' },
 ]
-
-const FEATURED = PROJECTS.filter((p) => p.featured)
-export const SHOWCASE = FEATURED.length ? FEATURED : PROJECTS
-export const ARCHIVE = FEATURED.length ? PROJECTS.filter((p) => !p.featured) : []
