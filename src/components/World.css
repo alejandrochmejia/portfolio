@@ -1,6 +1,6 @@
 .world {
   position: relative;
-  height: 320vh;
+  height: 440vh;
   background: #050506;
 }
 
@@ -24,8 +24,9 @@
   pointer-events: none;
 }
 
-/* ---- Section title (field phase) ---- */
-.world__section {
+/* ---- Section titles (about + field phases) ---- */
+.world__section,
+.world__about {
   position: absolute;
   top: clamp(4%, 5vh, 7%);
   left: 50%;
@@ -52,7 +53,9 @@
   line-height: 0.9;
   color: var(--fg, #f6f5f2);
 }
+.world__overlay[data-phase='about'] .world__about { opacity: 1; }
 .world__overlay[data-phase='field'] .world__section { opacity: 1; }
+.world__overlay[data-open='true'] .world__about,
 .world__overlay[data-open='true'] .world__section { opacity: 0; }
 
 .world__tag {
@@ -68,10 +71,11 @@
   text-transform: uppercase;
   color: #cfcfce;
   white-space: nowrap;
+  opacity: 0;
   transition: opacity 0.5s ease;
 }
 .world__dot { opacity: 0.5; }
-.world__overlay[data-phase='field'] .world__tag { opacity: 0; }
+.world__overlay[data-phase='name'] .world__tag { opacity: 1; }
 
 .world__hint {
   position: absolute;
@@ -86,6 +90,7 @@
   white-space: nowrap;
   transition: opacity 0.5s ease;
 }
+.world__overlay[data-phase='none'] .world__hint { opacity: 0; }
 .world__overlay[data-open='true'] .world__hint,
 .world__overlay[data-open='true'] .world__tag { opacity: 0; }
 

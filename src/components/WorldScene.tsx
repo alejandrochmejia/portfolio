@@ -5,7 +5,9 @@ import { SRGBColorSpace, type Group, type Texture } from 'three'
 import { PROJECTS } from './projectsData.ts'
 import { HeroRig } from './HeroRig.tsx'
 import { FieldOrb } from './FieldOrb.tsx'
+import { AboutMarquee } from './AboutMarquee.tsx'
 import { clamp, MAX_PAN } from './fieldLayout.ts'
+import { track, HERO_OUT } from './choreography.ts'
 import { QUALITY } from './quality.ts'
 import { makeGlowTexture, makeRoundedMask } from './iconTextures.ts'
 
@@ -33,8 +35,8 @@ export function WorldScene({ progress, pan, panDir, selected, onHover, onSelect 
 
   useFrame((_, delta) => {
     const p = progress.current ?? 0
-    // Hero rises + shrinks away on a short scroll — it leaves as the field arrives.
-    const nf = clamp((p - 0.05) / 0.12, 0, 1)
+    // Hero rises + shrinks away on a short scroll — it leaves as the About arrives.
+    const nf = track(p, HERO_OUT[0], HERO_OUT[1])
     if (heroRef.current) {
       heroRef.current.position.y = nf * 2.6
       heroRef.current.scale.setScalar(1 - 0.9 * nf)
@@ -53,6 +55,8 @@ export function WorldScene({ progress, pan, panDir, selected, onHover, onSelect 
       <group ref={heroRef}>
         <HeroRig />
       </group>
+
+      <AboutMarquee progress={progress} />
 
       {PROJECTS.map((proj, i) => (
         <FieldOrb

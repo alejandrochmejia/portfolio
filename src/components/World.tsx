@@ -20,7 +20,7 @@ export function World() {
 
   const [hovered, setHovered] = useState<number | null>(null)
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
-  const [phase, setPhase] = useState<'name' | 'field'>('name')
+  const [phase, setPhase] = useState<'name' | 'about' | 'field' | 'none'>('name')
   const [past, setPast] = useState(false)
 
   // Scroll → progress (drives hero exit + field appear/exit in the scene).
@@ -33,7 +33,8 @@ export function World() {
       const total = Math.max(1, el.offsetHeight - window.innerHeight)
       const p = clamp(-el.getBoundingClientRect().top / total, 0, 1)
       progress.current = p
-      setPhase(p > 0.18 && p < 0.86 ? 'field' : 'name')
+      // hero → about (curved marquee) → projects, along the pinned scroll.
+      setPhase(p < 0.13 ? 'name' : p < 0.45 ? 'about' : p < 0.93 ? 'field' : 'none')
       setPast(el.getBoundingClientRect().bottom <= window.innerHeight * 0.4)
     }
     const onScroll = () => {
@@ -110,6 +111,11 @@ export function World() {
         </Canvas>
 
         <div className="world__overlay" data-phase={phase} data-open={selectedIdx !== null}>
+          <div className="world__about">
+            <p className="world__kicker">01 — Quién soy</p>
+            <h2 className="world__section-title">Sobre mí</h2>
+          </div>
+
           <div className="world__section">
             <p className="world__kicker">02 — Selected work</p>
             <h2 className="world__section-title">Proyectos</h2>

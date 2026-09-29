@@ -3,7 +3,8 @@ import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { Text, MeshTransmissionMaterial } from '@react-three/drei'
 import { type Group, type Mesh, type Texture } from 'three'
 import { type Project } from './projectsData.ts'
-import { clamp, slotFor } from './fieldLayout.ts'
+import { slotFor } from './fieldLayout.ts'
+import { track, FIELD_IN, FIELD_OUT } from './choreography.ts'
 import { QUALITY } from './quality.ts'
 
 const FONT = '/fonts/Anton-Regular.ttf'
@@ -42,8 +43,8 @@ export function FieldOrb({ project, index, icon, glow, mask, progress, pan, sele
   useFrame((state) => {
     const t = state.clock.elapsedTime
     const p = progress.current
-    const appear = clamp((p - 0.14) / 0.1, 0, 1)
-    const exit = clamp((p - 0.82) / 0.14, 0, 1)
+    const appear = track(p, FIELD_IN[0], FIELD_IN[1])
+    const exit = track(p, FIELD_OUT[0], FIELD_OUT[1])
     const dim = selected.current !== null ? 0 : 1
     const target = appear * (1 - exit) * dim * (hov.current ? 1.18 : 1)
     s.current += (target - s.current) * 0.16
@@ -118,7 +119,7 @@ export function FieldOrb({ project, index, icon, glow, mask, progress, pan, sele
           onSelect(index)
         }}
       >
-        <sphereGeometry args={[0.9, 32, 32]} />
+        <sphereGeometry args={[0.9, 48, 48]} />
         <MeshTransmissionMaterial
           transmission={1}
           thickness={0.5}
@@ -131,7 +132,7 @@ export function FieldOrb({ project, index, icon, glow, mask, progress, pan, sele
           temporalDistortion={0.2}
           clearcoat={1}
           color="#ffffff"
-          transmissionSampler
+          transmissionSampler={QUALITY.transmissionSampler}
           resolution={QUALITY.resolution}
           samples={QUALITY.samples}
         />
