@@ -1,6 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createGenie, type GenieInstance } from 'genie-web'
+import { useLang, setLang, tr, LANGS } from '../i18n.ts'
+import { SECTIONS, currentSection, goToSection } from './sections.ts'
+import { Blink } from './y2k.tsx'
+import { ContactLinks } from './Contact.tsx'
 import './Menu.css'
+
+/** How long the "/ → arrow" shot plays before the jump. */
+const SHOOT_MS = 260
 
 const GENIE_MS = 560
 /** Fraction of the maximize after which the real window starts fading in underneath. */
@@ -55,12 +62,25 @@ async function captureGlass(): Promise<HTMLCanvasElement> {
 
 /** Top-right chrome hamburger + full-screen liquid-glass window that maximizes
  *  out of / minimizes into the button with the macOS genie effect (genie-web).
- *  Sections go inside `.menu__nav`. */
+ *  The window lists the sections as `/paths`; on hover / click the slash
+ *  morphs into a chrome arrow → and a click jumps there. */
 export function Menu() {
+  const lang = useLang()
   const [open, setOpen] = useState(false)
+  const [here, setHere] = useState('home')
+  const [going, setGoing] = useState<string | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const winRef = useRef<HTMLDivElement>(null)
+  const navRef = useRef<HTMLElement>(null)
   const genie = useRef<GenieInstance | null>(null)
+
+  // Deep link (#projects…) on load: wait for the lazy sections to lay out.
+  useEffect(() => {
+    const id = location.hash.slice(1)
+    if (!SECTIONS.some((s) => s.id === id)) return
+    const t = window.setTimeout(() => goToSection(id), 400)
+    return () => window.clearTimeout(t)
+  }, [])
 
   useEffect(() => {
     if (!winRef.current || !btnRef.current) return
@@ -103,15 +123,48 @@ export function Menu() {
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+      if (e.key !== 'Tab') return
+      // Keep Tab inside the window + its close button.
+      const stops = [btnRef.current!, ...winRef.current!.querySelectorAll<HTMLElement>('a, button')]
+      const i = stops.indexOf(document.activeElement as HTMLElement)
+      const next = e.shiftKey ? (i <= 0 ? stops.length - 1 : i - 1) : (i + 1) % stops.length
+      e.preventDefault()
+      stops[next].focus()
+    }
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKey)
+    // Focus the current section's link once the window has landed.
+    const t = window.setTimeout(
+      () => navRef.current?.querySelector<HTMLElement>('[aria-current]')?.focus({ preventScroll: true }),
+      GENIE_MS,
+    )
     return () => {
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
+      window.clearTimeout(t)
     }
   }, [open])
+
+  const toggle = () => {
+    if (!open) setHere(currentSection())
+    setGoing(null)
+    setOpen((o) => !o)
+  }
+
+  const go = (e: MouseEvent, id: string) => {
+    e.preventDefault()
+    if (going) return
+    setGoing(id)
+    // The arrow shoots right, then jump under the glass and minimize.
+    window.setTimeout(() => {
+      goToSection(id)
+      setOpen(false)
+      btnRef.current?.focus({ preventScroll: true })
+    }, SHOOT_MS)
+  }
 
   return (
     <>
@@ -119,8 +172,8 @@ export function Menu() {
         ref={btnRef}
         className="menu-btn"
         data-open={open}
-        onClick={() => setOpen((o) => !o)}
-        aria-label={open ? 'Close menu' : 'Open menu'}
+        onClick={toggle}
+        aria-label={lang === 'es' ? (open ? 'Cerrar menú' : 'Abrir menú') : open ? 'Close menu' : 'Open menu'}
         aria-expanded={open}
         aria-controls="site-menu"
       >
@@ -131,9 +184,48 @@ export function Menu() {
         </span>
       </button>
 
-      <div id="site-menu" className="menu" data-open={open} aria-hidden={!open}>
+      <div id="site-menu" className="menu" data-open={open} aria-hidden={!open} inert={!open}>
         <div ref={winRef} className="menu__win">
-          <nav className="menu__nav" />
+          <div className="menu__lang" role="group" aria-label={lang === 'es' ? 'Idioma' : 'Language'}>
+            {LANGS.map((l) => (
+              <button key={l} type="button" lang={l} aria-pressed={lang === l} onClick={() => setLang(l)}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <nav ref={navRef} className="menu__nav" aria-label={lang === 'es' ? 'Secciones' : 'Sections'}>
+            <ol className="menu__list" data-going={going !== null}>
+              {SECTIONS.map((s, i) => (
+                <li key={s.id} style={{ '--i': i } as CSSProperties}>
+                  <a
+                    className="mlink"
+                    href={`#${s.id}`}
+                    onClick={(e) => go(e, s.id)}
+                    aria-current={here === s.id ? 'location' : undefined}
+                    data-go={going === s.id}
+                  >
+                    <span className="mlink__idx" aria-hidden="true">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    {/* "/" at rest → chrome arrow on hover / focus / click. */}
+                    <span className="mlink__glyph" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                    <span className="mlink__path" data-text={s.id}>
+                      <span className="y2k-chrome">{s.id}</span>
+                    </span>
+                    <span className="mlink__label">
+                      {here === s.id && <Blink />}
+                      {tr(s.label, lang)}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+            <ContactLinks className="menu__socials" />
+          </nav>
         </div>
       </div>
     </>

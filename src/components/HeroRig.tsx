@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { Float, Text, MeshTransmissionMaterial, MeshDistortMaterial } from '@react-three/drei'
 import { CanvasTexture, MeshPhysicalMaterial, SRGBColorSpace, type Group, type Mesh } from 'three'
+import { QUALITY } from './quality.ts'
+import { useReducedMotion } from './useReducedMotion.ts'
 
 const FONT = '/fonts/Anton-Regular.ttf'
+
+/** Plane of the name (world z) and its widest line ("ALEJANDRO" in Anton at
+ *  fontSize 1.35, measured from the font's advances). */
+const NAME_Z = -0.8
+const NAME_W = 5.7
+/** Target share of the visible width the name may take on narrow screens. */
+const NAME_FILL = 0.88
 
 /** Same vertical chrome as the DOM section titles (`.y2k-chrome`): white → grey,
  *  a dark band at ~52%, back to white. Troika's UVs span each text block, so the
@@ -30,6 +39,7 @@ function makeChromeGradient() {
  *  (clearcoat, catching the studio env), gently breathes/floats, and its transparency pulses between 0.86 and 1. */
 function RefractedName() {
   const group = useRef<Group>(null)
+  const reduced = useReducedMotion()
 
   // One glass material per line (a material can't be shared across two primitive
   // mounts). Physical + iridescence + clearcoat = the frosted-glass read.
@@ -67,8 +77,17 @@ function RefractedName() {
   )
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime
     const g = group.current
+    if (reduced) {
+      // Still name: no float / breathing / opacity pulse.
+      g?.position.set(0, 0, NAME_Z)
+      g?.rotation.set(0, 0, 0)
+      g?.scale.setScalar(1)
+      mats[0].opacity = 0.93
+      mats[1].opacity = 0.93
+      return
+    }
+    const t = state.clock.elapsedTime
     if (g) {
       g.position.y = Math.sin(t * 0.5) * 0.06
       g.rotation.z = Math.sin(t * 0.3) * 0.012
@@ -88,7 +107,7 @@ function RefractedName() {
     fontSize: 1.35,
   }
   return (
-    <group ref={group} position={[0, 0, -0.8]}>
+    <group ref={group} position={[0, 0, NAME_Z]}>
       <Text {...common} position={[0, 0.78, 0]}>
         ALEJANDRO
         <primitive object={mats[0]} attach="material" />
@@ -116,10 +135,12 @@ function CenterBubble() {
   } | null>(null)
   const hovered = useRef(false)
   const p = useRef(0)
+  const reduced = useReducedMotion()
 
   useFrame((state, delta) => {
-    const t = state.clock.elapsedTime
-    p.current += ((hovered.current ? 1 : 0) - p.current) * (1 - Math.exp(-6 * delta))
+    // Reduced motion: frozen clock + no hover wobble → a still glass orb.
+    const t = reduced ? 0 : state.clock.elapsedTime
+    p.current += ((hovered.current && !reduced ? 1 : 0) - p.current) * (1 - Math.exp(-6 * delta))
     const e = p.current
 
     const c = core.current
@@ -141,7 +162,7 @@ function CenterBubble() {
       // Ripple the refraction more as it's hovered — the "deform" of the glass.
       m.distortion = 0.22 + e * 0.55
       m.distortionScale = 0.3 + e * 0.5
-      m.temporalDistortion = 0.18 + e * 0.6
+      m.temporalDistortion = reduced ? 0 : 0.18 + e * 0.6
     }
   })
 
@@ -157,11 +178,15 @@ function CenterBubble() {
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      <Float speed={1.1} rotationIntensity={0.25} floatIntensity={0.7}>
+      <Float enabled={!reduced} speed={1.1} rotationIntensity={0.25} floatIntensity={0.7}>
         <mesh ref={core} position={BUBBLE_CENTER} scale={[0.92, 1.12, 0.92]}>
-          <sphereGeometry args={[0.85, 96, 96]} />
+          <sphereGeometry args={[0.85, QUALITY.segments, QUALITY.segments]} />
           <MeshTransmissionMaterial
             ref={mat as never}
+            samples={QUALITY.samples}
+            // Desktop keeps the full-size buffer (sharp refraction); phones use a small one.
+            resolution={QUALITY.isMobile ? QUALITY.resolution : undefined}
+            transmissionSampler={QUALITY.transmissionSampler}
             transmission={1}
             thickness={0.8}
             roughness={0.03}
@@ -170,7 +195,7 @@ function CenterBubble() {
             anisotropicBlur={0.1}
             distortion={0.22}
             distortionScale={0.3}
-            temporalDistortion={0.18}
+            temporalDistortion={reduced ? 0 : 0.18}
             clearcoat={1}
             clearcoatRoughness={0.04}
             color="#ffffff"
@@ -195,17 +220,18 @@ function ChromeForm({
   scale: [number, number, number]
   floatSpeed: number
 }) {
+  const reduced = useReducedMotion()
   return (
-    <Float speed={floatSpeed} rotationIntensity={1.4} floatIntensity={1}>
+    <Float enabled={!reduced} speed={floatSpeed} rotationIntensity={1.4} floatIntensity={1}>
       <mesh position={position} rotation={rotation} scale={scale}>
-        <icosahedronGeometry args={[1, 32]} />
+        <icosahedronGeometry args={[1, Math.round(QUALITY.segments / 3)]} />
         <MeshDistortMaterial
           color="#f2f5fa"
           metalness={1}
           roughness={0.14}
           envMapIntensity={2.4}
           distort={0.55}
-          speed={1.6}
+          speed={reduced ? 0 : 1.6}
         />
       </mesh>
     </Float>
@@ -215,8 +241,9 @@ function ChromeForm({
 /** Thin chrome orbital rings, slowly precessing. */
 function OrbitRings() {
   const ref = useRef<Group>(null)
+  const reduced = useReducedMotion()
   useFrame((state) => {
-    const t = state.clock.elapsedTime
+    const t = reduced ? 0 : state.clock.elapsedTime
     const g = ref.current
     if (!g) return
     g.rotation.z = t * 0.08
@@ -239,6 +266,23 @@ function OrbitRings() {
 /** The whole hero rig — refracted name, deforming centre bubble, chrome Y2K
  *  accents and orbital rings. WorldScene animates it as one group on scroll. */
 export function HeroRig() {
+  // Fit the name to narrow screens: scale the whole rig so "ALEJANDRO" takes
+  // ~88% of the visible width at its plane (capped at 1 on desktop). The camera
+  // stays put (the About barrel depends on it). The pivot is the name's plane,
+  // so the name shrinks exactly by k while the bubble also recedes a bit —
+  // it covers less of the name in portrait.
+  const visW = useThree((s) => s.viewport.getCurrentViewport(s.camera, [0, 0, NAME_Z]).width)
+  const k = Math.min(1, (NAME_FILL * visW) / NAME_W)
+  return (
+    <group position={[0, 0, NAME_Z]} scale={k}>
+      <group position={[0, 0, -NAME_Z]}>
+        <RigPieces />
+      </group>
+    </group>
+  )
+}
+
+function RigPieces() {
   return (
     <>
       <RefractedName />

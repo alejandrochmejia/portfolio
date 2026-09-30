@@ -1,18 +1,63 @@
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { TECH } from './techData.ts'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { KIND, TECH } from './techData.ts'
 import { track } from './choreography.ts'
-import { Blink, ChromeStar, WindowDots } from './y2k.tsx'
+import { Blink, ChromeStar } from './y2k.tsx'
+import { useCopy, useLang } from '../i18n.ts'
 import './TechStack.css'
-
-const TechBackdrop = lazy(() => import('./TechBackdrop.tsx'))
 
 /** Hits each block takes before it breaks (the first one cracks it). */
 const HP = 2
 const SHIP_SPEED = 560 // px/s with the arrow keys
 const SHOT_SPEED = 820 // px/s
 const COOLDOWN = 0.17 // s between shots while holding fire
+/** Touch: a horizontal drag past this arms the game (smaller moves may be a scroll starting). */
+const DRAG_PX = 6
+/** Touch: max finger travel for a tap. */
+const TAP_PX = 10
+/** Touch: how long a finger has to stay down before it counts as "hold to fire". */
+const HOLD_MS = 140
+
+// "Tech stack" stays in English in both languages: it's the term Spanish-speaking devs use.
+const COPY = {
+  es: {
+    stage:
+      'Minijuego Stack Invaders: destruye los bloques para descubrir mi stack. ' +
+      'Flechas izquierda y derecha o A y D para moverte, Espacio o flecha arriba para disparar, Esc para salir. ' +
+      'En pantallas táctiles: toca para jugar, arrastra para moverte y mantén pulsado para disparar.',
+    playFine: 'Clic para jugar',
+    keysFine: 'Ratón / ← → para moverte · Clic / Espacio para disparar · Esc para salir',
+    playCoarse: 'Toca para jugar',
+    keysCoarse: 'Arrastra para moverte · Mantén para disparar',
+    unlocked: 'Desbloqueado',
+    score: 'Desbloqueadas',
+    announce: 'desbloqueado',
+    allUnlocked: 'Todos los sistemas desbloqueados',
+    complete: 'Stack completo',
+    again: 'Jugar de nuevo',
+    list: 'Tecnologías que uso',
+  },
+  en: {
+    stage:
+      'Stack Invaders mini-game: destroy the blocks to discover my stack. ' +
+      'Left and right arrows or A and D to move, Space or up arrow to fire, Esc to exit. ' +
+      'On touch screens: tap to play, drag to move and hold to fire.',
+    playFine: 'Click to play',
+    keysFine: 'Mouse / ← → to move · Click / Space to fire · Esc to exit',
+    playCoarse: 'Tap to play',
+    keysCoarse: 'Drag to move · Hold to fire',
+    unlocked: 'Unlocked',
+    score: 'Unlocked',
+    announce: 'unlocked',
+    allUnlocked: 'All systems unlocked',
+    complete: 'Stack complete',
+    again: 'Play again',
+    list: 'Technologies I use',
+  },
+}
 
 type Block = { x: number; y: number; w: number; h: number; hp: number; flash: number; dead: boolean }
+/** Per-block gradients, built in layout() instead of every frame. */
+type Paint = { body: CanvasGradient; rim: CanvasGradient; gloss: CanvasGradient }
 type Shot = { x: number; y: number }
 type Spark = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number }
 
@@ -81,9 +126,13 @@ async function loadIcon(src: string, color: string): Promise<HTMLCanvasElement> 
 /** "Stack Invaders": a Space-Invaders-style mini-game on a 2D canvas inside a
  *  Y2K OS window. Each static block hides a technology; destroying it reveals
  *  the name (big chrome text) and adds it to the inventory below. Mouse moves
- *  the ship + click fires; ← → / A D move and Space / ↑ fire. */
+ *  the ship + click fires; ← → / A D move and Space / ↑ fire. On touch a tap
+ *  or a horizontal drag arms it; then drag moves and holding fires. */
 export function TechStack() {
+  const t = useCopy(COPY)
+  const lang = useLang()
   const sectionRef = useRef<HTMLElement>(null)
+  const pinRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const api = useRef<GameApi | null>(null)
@@ -91,19 +140,12 @@ export function TechStack() {
   const [found, setFound] = useState<number[]>([])
   const [reveal, setReveal] = useState<{ i: number; key: number } | null>(null)
   const [armed, setArmed] = useState(false)
-  const [onScreen, setOnScreen] = useState(false)
-
-  // Only render the 3D backdrop's frames while the section is on screen.
-  useEffect(() => {
-    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting))
-    io.observe(sectionRef.current!)
-    return () => io.disconnect()
-  }, [])
 
   // Scroll-driven CRT transition. The section is taller than the screen and its
   // content is pinned: it powers on while arriving and powers off while leaving.
   useEffect(() => {
     const el = sectionRef.current!
+    const pin = pinRef.current!
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const ease = (t: number) => 1 - (1 - t) ** 3
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -112,16 +154,20 @@ export function TechStack() {
     let raf = 0
     const update = () => {
       raf = 0
-      const vh = window.innerHeight
+      // The pin's real height (100svh), not innerHeight: on mobile they differ
+      // while the browser bars show/hide, and the CSS heights are in svh.
+      const vh = pin.offsetHeight || window.innerHeight
       const total = Math.max(1, el.offsetHeight - vh)
       const y = -el.getBoundingClientRect().top
       const e = track(y, -0.35 * vh, 0.5 * vh) // entry
       const o = track(y, total - 0.6 * vh, total) // exit
-      const title = ease(track(e, 0.55, 1)) * (1 - ease(track(o, 0, 0.35)))
+      let title = ease(track(e, 0.55, 1)) * (1 - ease(track(o, 0, 0.35)))
       let sx = 1
       let sy = 1
       let fade = Math.min(track(e, 0, 0.3), 1 - track(o, 0.7, 1))
-      if (!reduced) {
+      // Reduced motion uses a shorter section, where entry and exit overlap: the title just follows the fade.
+      if (reduced) title = fade
+      else {
         // on: dot → horizontal line → full screen; off: the same, backwards.
         sx = Math.max(DOT, Math.min(ease(track(e, 0.05, 0.4)), 1 - ease(track(o, 0.45, 0.8))))
         sy = Math.min(lerp(LINE, 1, ease(track(e, 0.4, 0.8))), lerp(1, LINE, ease(track(o, 0, 0.45))))
@@ -150,6 +196,7 @@ export function TechStack() {
   }, [])
 
   useEffect(() => {
+    const section = sectionRef.current!
     const stage = stageRef.current!
     const canvas = canvasRef.current!
     const ctx = canvas.getContext('2d')!
@@ -171,6 +218,15 @@ export function TechStack() {
     let shake = 0
     let time = 0
     let revealKey = 0
+    // Touch gesture in progress (a finger that went down on the stage).
+    let touch: { id: number; x0: number; y0: number; dragged: boolean; timer: number } | null = null
+    // Cached gradients (rebuilt in layout()).
+    let paints: Paint[] = []
+    let floorFade: CanvasGradient | null = null
+    let hullGrad: CanvasGradient | null = null
+    let cockpitGrad: CanvasGradient | null = null
+    // The loop shows a still frame while idle (CRT transition, or reduced motion before playing).
+    let still = false
     const stars = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), z: Math.random() }))
     const icons: (HTMLCanvasElement | undefined)[] = []
     let alive = true
@@ -179,7 +235,7 @@ export function TechStack() {
         .then((c) => {
           if (!alive) return
           icons[i] = c
-          if (!raf) draw()
+          redraw()
         })
         .catch(() => {}),
     )
@@ -198,16 +254,20 @@ export function TechStack() {
       dpr = Math.min(window.devicePixelRatio || 1, 2)
       canvas.width = Math.round(W * dpr)
       canvas.height = Math.round(H * dpr)
-      s = clamp(W * 0.03, 16, 26)
+      s = clamp(Math.min(W * 0.03, H * 0.07), 14, 26)
 
+      // More columns on wide/short stages (landscape phones, short laptops) so
+      // the blocks don't end up as flat strips with tiny logos.
       const n = blocks.length
-      const cols = W < 520 ? 4 : 5
+      const aspect = W / Math.max(H, 1)
+      const cols = aspect > 2.6 ? 10 : aspect > 1.95 ? 7 : W < 520 ? 4 : 5
       const rows = Math.ceil(n / cols)
-      const gap = clamp(W * 0.016, 8, 16)
-      const side = W * 0.07
+      const gap = clamp(Math.min(W * 0.016, H * 0.03), 6, 16)
+      const side = W * (cols > 5 ? 0.05 : 0.07)
+      const area = H * (aspect < 0.9 ? 0.56 : 0.5)
       const bw = Math.min(150, (W - side * 2 - gap * (cols - 1)) / cols)
-      const bh = Math.min(bw * 0.52, (H * 0.5 - gap * (rows - 1)) / rows)
-      const top = H * 0.1
+      const bh = Math.min(bw * (cols > 5 ? 0.64 : 0.52), (area - gap * (rows - 1)) / rows)
+      const top = H * (H < 320 ? 0.07 : 0.1)
       blocks.forEach((b, i) => {
         const row = Math.floor(i / cols)
         const col = i % cols
@@ -218,8 +278,32 @@ export function TechStack() {
         b.w = bw
         b.h = bh
       })
-      ship.y = H - Math.max(44, H * 0.11)
+      ship.y = H - Math.max(s * 2, H * 0.11)
       ship.x = ship.x ? clamp(ship.x, s, W - s) : W / 2
+
+      // The hint / reveal sit in the gap between the last row and the ship.
+      const blocksBottom = top + rows * bh + (rows - 1) * gap
+      stage.style.setProperty('--hint-y', `${Math.round((blocksBottom + ship.y - s * 1.1) / 2)}px`)
+
+      paints = blocks.map((b, i) => {
+        const c = TECH[i].color
+        const body = ctx.createLinearGradient(0, b.y, 0, b.y + b.h)
+        body.addColorStop(0, rgba(c, 0.38))
+        body.addColorStop(1, rgba(c, 0.06))
+        const gloss = ctx.createLinearGradient(0, b.y, 0, b.y + b.h * 0.45)
+        gloss.addColorStop(0, 'rgba(255, 255, 255, 0.28)')
+        gloss.addColorStop(1, 'rgba(255, 255, 255, 0)')
+        return { body, rim: chromeGradient(b.x, b.y, b.x + b.w, b.y + b.h), gloss }
+      })
+      const horizon = H * 0.66
+      floorFade = ctx.createLinearGradient(0, horizon, 0, H)
+      floorFade.addColorStop(0, 'rgba(139, 184, 255, 0)')
+      floorFade.addColorStop(1, 'rgba(139, 184, 255, 0.28)')
+      // Ship gradients are in its local (translated) coords, so they only depend on `s`.
+      hullGrad = chromeGradient(-s, -s, s, s)
+      cockpitGrad = ctx.createLinearGradient(0, -s * 0.55, 0, s * 0.2)
+      cockpitGrad.addColorStop(0, '#ff8fd0')
+      cockpitGrad.addColorStop(1, '#8bb8ff')
     }
 
     // ---- Effects ----
@@ -332,10 +416,7 @@ export function TechStack() {
       ctx.beginPath()
       ctx.rect(0, horizon, W, H - horizon)
       ctx.clip()
-      const fade = ctx.createLinearGradient(0, horizon, 0, H)
-      fade.addColorStop(0, 'rgba(139, 184, 255, 0)')
-      fade.addColorStop(1, 'rgba(139, 184, 255, 0.28)')
-      ctx.strokeStyle = fade
+      ctx.strokeStyle = floorFade!
       ctx.lineWidth = 1
       ctx.beginPath()
       for (let k = -12; k <= 12; k++) {
@@ -355,34 +436,30 @@ export function TechStack() {
 
     const drawBlock = (b: Block, i: number) => {
       const c = TECH[i].color
-      const r = Math.min(12, b.h * 0.24)
+      const paint = paints[i]
+      const r = Math.max(0, Math.min(12, b.h * 0.24))
 
       ctx.beginPath()
       ctx.roundRect(b.x, b.y, b.w, b.h, r)
       ctx.fillStyle = '#0b0d13'
       ctx.fill()
-      const body = ctx.createLinearGradient(0, b.y, 0, b.y + b.h)
-      body.addColorStop(0, rgba(c, 0.38))
-      body.addColorStop(1, rgba(c, 0.06))
-      ctx.fillStyle = body
+      ctx.fillStyle = paint.body
       ctx.fill()
       ctx.lineWidth = 1.5
-      ctx.strokeStyle = chromeGradient(b.x, b.y, b.x + b.w, b.y + b.h)
+      ctx.strokeStyle = paint.rim
       ctx.stroke()
 
       // Glossy bubble highlight on the top half.
-      const gloss = ctx.createLinearGradient(0, b.y, 0, b.y + b.h * 0.45)
-      gloss.addColorStop(0, 'rgba(255, 255, 255, 0.28)')
-      gloss.addColorStop(1, 'rgba(255, 255, 255, 0)')
       ctx.beginPath()
-      ctx.roundRect(b.x + 3, b.y + 3, b.w - 6, b.h * 0.42, [r - 2, r - 2, r * 0.6, r * 0.6])
-      ctx.fillStyle = gloss
+      ctx.roundRect(b.x + 3, b.y + 3, b.w - 6, b.h * 0.42, [Math.max(0, r - 2), Math.max(0, r - 2), r * 0.6, r * 0.6])
+      ctx.fillStyle = paint.gloss
       ctx.fill()
 
       // Logo (or a "?" until it loads) + hex tag + HP pips.
       const icon = icons[i]
       if (icon) {
-        const logo = b.h * 0.5
+        // Short blocks give the logo a bigger share so it stays readable (≥ ~16px).
+        const logo = Math.min(b.h * (b.h < 44 ? 0.62 : 0.5), b.w * 0.6)
         const scale = logo / ICON_PX
         const full = icon.width * scale
         ctx.globalAlpha = b.hp < HP ? 0.7 : 1
@@ -397,11 +474,14 @@ export function TechStack() {
       }
       ctx.textBaseline = 'middle'
 
-      const tag = clamp(b.h * 0.15, 7, 10)
-      ctx.font = `${tag}px ui-monospace, Consolas, monospace`
-      ctx.textAlign = 'left'
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
-      ctx.fillText(`0x${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`, b.x + 7, b.y + tag + 3)
+      // The hex tag is decoration: on short blocks it would crowd the logo.
+      if (b.h >= 36) {
+        const tag = clamp(b.h * 0.15, 7, 10)
+        ctx.font = `${tag}px ui-monospace, Consolas, monospace`
+        ctx.textAlign = 'left'
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+        ctx.fillText(`0x${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`, b.x + 7, b.y + tag + 3)
+      }
       for (let k = 0; k < HP; k++) {
         ctx.fillStyle = k < b.hp ? rgba(c, 0.95) : 'rgba(255, 255, 255, 0.15)'
         ctx.fillRect(b.x + b.w - 8 - (HP - k) * 7, b.y + b.h - 8, 5, 3)
@@ -462,17 +542,14 @@ export function TechStack() {
       ctx.lineTo(-s * 1.0, s * 0.3)
       ctx.lineTo(-s * 0.28, -s * 0.3)
       ctx.closePath()
-      ctx.fillStyle = chromeGradient(-s, -s, s, s)
+      ctx.fillStyle = hullGrad!
       ctx.fill()
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'
       ctx.lineWidth = 1
       ctx.stroke()
 
       // Cockpit bubble.
-      const cp = ctx.createLinearGradient(0, -s * 0.55, 0, s * 0.2)
-      cp.addColorStop(0, '#ff8fd0')
-      cp.addColorStop(1, '#8bb8ff')
-      ctx.fillStyle = cp
+      ctx.fillStyle = cockpitGrad!
       ctx.beginPath()
       ctx.ellipse(0, -s * 0.15, s * 0.16, s * 0.36, 0, 0, Math.PI * 2)
       ctx.fill()
@@ -526,11 +603,27 @@ export function TechStack() {
     let last = 0
     let visible = false
     const frame = (now: number) => {
+      raf = requestAnimationFrame(frame)
       const dt = Math.min(0.033, (now - last) / 1000)
       last = now
+      // Idle: during the scroll CRT transition (the screen is scaled/filtered,
+      // nobody is playing) and, with reduced motion, until the player arms the
+      // game. One still frame, no stars / grid / sparks moving.
+      if (section.dataset.fx === 'on' || (reduced && !isArmed)) {
+        if (!still) {
+          draw()
+          still = true
+        }
+        return
+      }
+      still = false
       update(dt)
       draw()
-      raf = requestAnimationFrame(frame)
+    }
+    /** Repaint after a change outside the loop (icons, fonts, resize, reset). */
+    const redraw = () => {
+      still = false
+      if (!raf) draw()
     }
     const start = () => {
       if (raf) return
@@ -549,8 +642,7 @@ export function TechStack() {
         else {
           stop()
           arm(false)
-          keys.left = keys.right = keys.fire = false
-          pointerFire = false
+          releaseAll()
         }
       },
       { threshold: 0.3 },
@@ -559,50 +651,110 @@ export function TechStack() {
 
     const ro = new ResizeObserver(() => {
       layout()
-      if (!raf) draw()
+      redraw()
     })
     ro.observe(stage)
     layout()
-    void document.fonts?.load('40px Anton').then(() => !raf && draw())
+    void document.fonts?.load('40px Anton').then(() => alive && redraw())
 
     // ---- Input ----
     const localX = (e: PointerEvent) => e.clientX - stage.getBoundingClientRect().left
-    const onMove = (e: PointerEvent) => {
+    const shoot = (e: PointerEvent) => {
+      arm(true)
       target = localX(e)
+      cool = Math.min(cool, 0)
+      fire()
+    }
+    /** Touch: once armed, a finger that stays down fires continuously. */
+    const holdToFire = () => {
+      if (!touch) return
+      clearTimeout(touch.timer)
+      touch.timer = window.setTimeout(() => {
+        pointerFire = true
+      }, HOLD_MS)
+    }
+    const releaseAll = () => {
+      keys.left = keys.right = keys.fire = false
+      pointerFire = false
+      if (touch) clearTimeout(touch.timer)
+      touch = null
+    }
+
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') {
+        target = localX(e)
+        return
+      }
+      if (!touch || e.pointerId !== touch.id) return
+      const dx = e.clientX - touch.x0
+      if (Math.abs(dx) > DRAG_PX) {
+        // A horizontal drag arms the game (a vertical one is a scroll: the
+        // browser takes it over with touch-action: pan-y and sends pointercancel).
+        if (!isArmed && Math.abs(dx) <= Math.abs(e.clientY - touch.y0)) return
+        if (!touch.dragged && !isArmed) {
+          arm(true)
+          holdToFire()
+        }
+        touch.dragged = true
+      }
+      if (isArmed) target = localX(e)
     }
     const onDown = (e: PointerEvent) => {
       // Clicks on overlay buttons (Play again) shouldn't fire a shot.
       if (e.button !== 0 || (e.target as Element).closest('button')) return
-      arm(true)
-      target = localX(e)
+      if (e.pointerType === 'touch') {
+        // Don't fire yet: this finger may be starting a page scroll.
+        if (touch) clearTimeout(touch.timer)
+        touch = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dragged: false, timer: 0 }
+        if (isArmed) {
+          target = localX(e)
+          holdToFire()
+        }
+        return
+      }
+      shoot(e)
       pointerFire = true
-      cool = Math.min(cool, 0)
-      fire()
     }
-    const onUp = () => {
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') {
+        pointerFire = false
+        return
+      }
+      if (!touch || e.pointerId !== touch.id) return
+      clearTimeout(touch.timer)
+      const tap =
+        e.type === 'pointerup' &&
+        !touch.dragged &&
+        Math.abs(e.clientX - touch.x0) < TAP_PX &&
+        Math.abs(e.clientY - touch.y0) < TAP_PX
+      // A tap arms and fires one shot (unless the hold already fired).
+      if (tap && !pointerFire) shoot(e)
       pointerFire = false
+      touch = null
     }
 
     const onKey = (e: KeyboardEvent) => {
       if (!visible || e.metaKey || e.ctrlKey || e.altKey) return
       const down = e.type === 'keydown'
       const k = e.key.toLowerCase()
+      const fireKey = k === ' ' || k === 'arrowup' || k === 'w'
+      // Space / Enter on a focused button (Play again) belong to the button.
+      if (fireKey && down && (e.target as Element | null)?.closest?.('button')) return
+      const focused = document.activeElement === stage
       if (k === 'arrowleft' || k === 'a') keys.left = down
       else if (k === 'arrowright' || k === 'd') keys.right = down
-      else if ((k === ' ' || k === 'arrowup' || k === 'w') && (isArmed || !down)) keys.fire = down
+      else if (fireKey && (isArmed || focused || !down)) keys.fire = down
       else if (k === 'escape' && down) {
         arm(false)
+        releaseAll()
         return
       } else return
       // Left/right never scroll the page, so they arm the game by themselves;
-      // Space / ↑ are only captured once the player has engaged.
+      // Space / ↑ are only captured once the player has engaged (or focused the stage).
       if (down) arm(true)
       e.preventDefault()
     }
-    const onBlur = () => {
-      keys.left = keys.right = keys.fire = false
-      pointerFire = false
-    }
+    const onBlur = releaseAll
 
     stage.addEventListener('pointermove', onMove)
     stage.addEventListener('pointerdown', onDown)
@@ -619,13 +771,14 @@ export function TechStack() {
         sparks = []
         setFound([])
         setReveal(null)
-        if (!raf) draw()
+        redraw()
       },
     }
 
     return () => {
       alive = false
       stop()
+      releaseAll()
       io.disconnect()
       ro.disconnect()
       stage.removeEventListener('pointermove', onMove)
@@ -641,13 +794,13 @@ export function TechStack() {
 
   const done = found.length === TECH.length
   const shown = reveal ? TECH[reveal.i] : null
+  const score = `${pad(found.length)}/${pad(TECH.length)}`
+  // Screen-reader announcement for the last unlock ("React desbloqueado · 01/20").
+  const announce = shown ? `${shown.name} ${t.announce} · ${score}${done ? ` · ${t.complete}` : ''}` : ''
 
   return (
     <section className="tstack" ref={sectionRef} aria-labelledby="tstack-title">
-      <div className="tstack__pin">
-        <Suspense fallback={null}>
-          <TechBackdrop running={onScreen} />
-        </Suspense>
+      <div className="tstack__pin" ref={pinRef}>
         <div className="tstack__head">
           <h2 id="tstack-title" className="tstack__title y2k-chrome">
             Tech stack<sup>✦</sup>
@@ -661,22 +814,22 @@ export function TechStack() {
           <span className="tstack__beam" aria-hidden="true" />
           <div className="tstack__tv">
             <div className="tstack__win">
-              <div className="tstack__bar" aria-hidden="true">
-                <WindowDots />
-                <span className="tstack__host">stack_invaders.exe</span>
-                <span className="tstack__score">
-                  <Blink /> Unlocked {pad(found.length)}/{pad(TECH.length)}
-                </span>
-              </div>
-
-              <div className="tstack__stage" ref={stageRef} data-armed={armed} data-done={done}>
+              <div
+                className="tstack__stage"
+                ref={stageRef}
+                data-armed={armed}
+                data-done={done}
+                tabIndex={0}
+                role="application"
+                aria-label={t.stage}
+              >
                 <canvas ref={canvasRef} className="tstack__canvas" aria-hidden="true" />
                 <div className="tstack__crt" aria-hidden="true" />
 
                 {shown && !done && (
                   <div className="tstack__reveal" key={reveal!.key} style={{ '--c': shown.color } as CSSProperties} aria-hidden="true">
                     <span className="tstack__reveal-kind">
-                      {pad(reveal!.i + 1)} · {shown.kind} unlocked
+                      {pad(reveal!.i + 1)} · {KIND[shown.kind][lang]} · {t.unlocked}
                     </span>
                     <span className="tstack__reveal-name" data-text={shown.name}>
                       {shown.name}
@@ -684,44 +837,63 @@ export function TechStack() {
                   </div>
                 )}
 
+                {/* Both variants are rendered; CSS picks one with (pointer: coarse). */}
                 {!armed && !done && (
                   <div className="tstack__hint" aria-hidden="true">
-                    <b>Click to play</b>
-                    <span>Mouse / ← → to move · Click / Space to fire</span>
+                    <span className="tstack__hint-v tstack__hint-v--fine">
+                      <b className="tstack__hint-go">{t.playFine}</b>
+                      <span className="tstack__hint-keys">{t.keysFine}</span>
+                    </span>
+                    <span className="tstack__hint-v tstack__hint-v--coarse">
+                      <b className="tstack__hint-go">{t.playCoarse}</b>
+                      <span className="tstack__hint-keys">{t.keysCoarse}</span>
+                    </span>
                   </div>
                 )}
 
                 {done && (
                   <div className="tstack__done">
-                    <span className="tstack__done-kicker">All systems unlocked</span>
+                    <span className="tstack__done-kicker">{t.allUnlocked}</span>
                     <span className="tstack__done-title y2k-chrome">
-                      Stack complete<sup>✦</sup>
+                      {t.complete}
+                      <sup>✦</sup>
                     </span>
                     <button type="button" className="tstack__btn" onClick={() => api.current?.reset()}>
-                      Play again ↻
+                      {t.again} ↻
                     </button>
                   </div>
                 )}
               </div>
 
-              <div className="tstack__foot">
-                <ul className="tstack__inv" aria-label="Technologies">
-                  {TECH.map((t, i) => {
-                    const got = found.includes(i)
-                    return (
-                      <li key={t.name} data-got={got} style={{ '--c': t.color } as CSSProperties}>
-                        {/* The name stays in the DOM for screen readers / SEO; only the visuals are hidden. */}
-                        <span className="tstack__chip-name">{t.name}</span>
-                        {!got && <span className="tstack__chip-mask" aria-hidden="true">{'▮'.repeat(Math.min(t.name.length, 8))}</span>}
-                      </li>
-                    )
-                  })}
+              {/* Visual game state; the accessible version is the hidden list below. */}
+              <div className="tstack__foot" aria-hidden="true">
+                <span className="tstack__score">
+                  <Blink /> {t.score} {score}
+                </span>
+                <ul className="tstack__inv">
+                  {TECH.map((tech, i) => (
+                    <li key={tech.name} data-got={found.includes(i)} style={{ '--c': tech.color } as CSSProperties}>
+                      {tech.name}
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* For screen readers and SEO: the whole stack, no game required. */}
+      <ul className="tstack__sr" aria-label={t.list}>
+        {TECH.map((tech) => (
+          <li key={tech.name}>
+            {tech.name} ({KIND[tech.kind][lang]})
+          </li>
+        ))}
+      </ul>
+      <p className="tstack__sr" aria-live="polite">
+        {announce}
+      </p>
     </section>
   )
 }

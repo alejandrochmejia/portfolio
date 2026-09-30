@@ -18,6 +18,20 @@
   --rim: linear-gradient(135deg, #ffffff 0%, #7d8494 28%, #f3f5fa 50%, #4f5463 74%, #dfe3eb 100%);
   --display: 'Anton', 'Arial Narrow', Impact, sans-serif;
   --ui: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* Low-emphasis text that still passes WCAG AA on --bg (≈5.9:1). */
+  --faint: var(--muted);
+
+  /* Type scale (fluid). Use these instead of ad-hoc clamps.
+     --fs-meta is the floor for any text that carries information
+     (dates, roles, labels); purely decorative text may go below it. */
+  --fs-display: clamp(2.4rem, 1rem + 6vw, 5.6rem);
+  --fs-h2: clamp(1.6rem, 1rem + 2.4vw, 2.6rem);
+  --fs-body: clamp(0.92rem, 0.88rem + 0.2vw, 1rem);
+  --fs-small: 0.82rem;
+  --fs-meta: 0.72rem;
+
+  /* Breakpoints (documentation only — CSS can't use vars in @media):
+     sm ≤720px (phones) · md ≤1024px (tablets) · short: max-height 500px (phone landscape). */
 
   color-scheme: dark;
   font-family: var(--ui);
@@ -41,11 +55,14 @@ html {
   scrollbar-gutter: stable;
 }
 
+html {
+  overscroll-behavior-y: none;
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  overscroll-behavior-y: none;
 }
 
 #root {
@@ -56,4 +73,15 @@ body {
 ::selection {
   background: var(--fg);
   color: var(--bg);
+}
+
+/* Global reduced-motion floor (components refine their own). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }

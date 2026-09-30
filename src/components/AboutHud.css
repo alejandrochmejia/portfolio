@@ -65,9 +65,40 @@
     repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
 }
 
+/* ---- Barrel stats for screen readers (visually hidden) ---- */
+.ahud__sr {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 720px) {
   .ahud__spark--l { left: -1.6rem; }
   .ahud__spark--r { right: -1.4rem; }
+}
+
+/* Clear the fixed menu button (52px + ~14px gap, top right). */
+@media (max-width: 480px) {
+  .ahud__title { max-width: calc(100% - 128px); }
+  .ahud__name { font-size: clamp(2.2rem, 11vw, 2.6rem); }
+  .ahud__spark--l { left: -1.3rem; width: 16px; }
+  .ahud__spark--r { right: -0.9rem; width: 10px; }
+}
+
+/* Phone landscape: smaller title so the barrel keeps the height. */
+@media (max-height: 500px) {
+  .ahud__title { top: 3%; }
+  .ahud__name { font-size: 1.8rem; }
+  .ahud__spark { width: 14px; }
+  .ahud__spark--l { left: -1.4rem; }
+  .ahud__spark--r { right: -1rem; width: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

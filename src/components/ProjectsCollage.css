@@ -26,6 +26,11 @@
 .collage__grid {
   position: absolute;
   inset: clamp(56px, 8vh, 84px) clamp(12px, 1.6vw, 28px) clamp(40px, 6vh, 64px);
+  /* Ultrawide: cap the width (≈2× the grid's height) and centre it, so tiles
+     don't stretch into wide, empty boxes. Normal 16:10 / 16:9 screens are
+     below the cap and keep the full width. */
+  max-width: max(960px, calc((100svh - 150px) * 2));
+  margin-inline: auto;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   grid-template-rows: repeat(5, minmax(0, 1fr));
@@ -121,15 +126,15 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  height: clamp(18px, 2.2vh, 24px);
+  height: clamp(20px, 2.4vh, 26px);
   padding: 0 0.6rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01));
   font-family: var(--mono, ui-monospace, monospace);
-  font-size: 0.56rem;
-  letter-spacing: 0.12em;
+  font-size: var(--fs-meta);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.62);
 }
 .tile__host {
   flex: 1;
@@ -149,6 +154,9 @@
   margin: 5px;
   border-radius: calc(var(--radius) - 6px);
   overflow: hidden;
+  /* Size container → the icon scales with the screen's width AND height
+     (short tiles no longer crop it). */
+  container-type: size;
   background:
     radial-gradient(90% 80% at 30% 20%, color-mix(in oklab, var(--accent) 38%, transparent), transparent 65%),
     radial-gradient(80% 70% at 85% 100%, rgba(255, 143, 208, 0.14), transparent 60%),
@@ -177,13 +185,13 @@
 
 .tile__icon {
   position: relative;
-  width: clamp(34px, 32%, 110px);
+  width: clamp(28px, min(32cqw, 62cqh), 110px);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
   transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1.3);
 }
-.tile[data-featured='true'] .tile__icon { width: clamp(60px, 26%, 150px); }
+.tile[data-featured='true'] .tile__icon { width: clamp(48px, min(26cqw, 55cqh), 150px); }
 .tile__icon img {
   width: 100%;
   height: 100%;
@@ -233,12 +241,14 @@
   letter-spacing: 0.02em;
   line-height: 0.95;
   text-transform: uppercase;
+  /* Room for accents (É, Ó) that the ellipsis overflow would clip. */
+  padding-top: 0.12em;
 }
 .tile[data-featured='true'] .tile__title { font-size: clamp(1.3rem, 2.4vw, 2.3rem); }
 .tile__role {
   font-family: var(--mono, ui-monospace, monospace);
-  font-size: 0.56rem;
-  letter-spacing: 0.14em;
+  font-size: var(--fs-meta);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   background: linear-gradient(90deg, var(--blue), var(--pink));
   -webkit-background-clip: text;
@@ -316,16 +326,58 @@
   align-items: center;
   gap: 0.4rem;
   font-family: var(--mono, ui-monospace, monospace);
-  font-size: 0.56rem;
-  letter-spacing: 0.2em;
+  font-size: var(--fs-meta);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #cfd3dc;
 }
 .decor__label--dim { color: var(--muted, #8a8a90); }
+/* ---- Touch: no hover, so the title + role are always shown (compact, in
+   the tile's flow so they never cover the icon) and a tap opens the panel.
+   Scroll drift is halved (and there's no pointer parallax). ---- */
+@media (hover: none) {
+  .collage__cell {
+    transform: translate3d(0, calc((0.5 - var(--t)) * var(--z) * 55px), 0);
+  }
+  .tile__meta,
+  .tile[data-featured='true'] .tile__meta {
+    position: relative;
+    flex: none;
+    transform: none;
+    gap: 0.1rem;
+    padding: 0.1rem 0.6rem 0.5rem;
+    background: none;
+  }
+  .tile__title,
+  .tile__role {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tile__title { font-size: clamp(0.9rem, 1.1vw + 0.5rem, 1.2rem); }
+  .tile[data-featured='true'] .tile__title { font-size: clamp(1rem, 1.8vw + 0.4rem, 1.9rem); }
+  .tile__role { letter-spacing: 0.04em; }
+  .tile:active { transform: scale(0.97); }
+}
+
+/* ---- Tablet (721–1024px): 5 × 6 grid so tiles aren't narrow and tall ---- */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .collage__grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+  }
+  .collage__cell {
+    grid-column: var(--tc) / span var(--tcs);
+    grid-row: var(--tr) / span var(--trs);
+  }
+  .ctitle__name { font-size: clamp(2.6rem, 8vw, 5rem); }
+}
+
 /* ---- Mobile: 3 × 7 grid, featured tiles collapse to single cells ---- */
 @media (max-width: 720px) {
   .collage__grid {
-    inset: 64px 12px 56px;
+    /* Top inset clears the fixed 52px menu button (Roda sits top-right). */
+    inset: 76px 12px 56px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-rows: repeat(7, minmax(0, 1fr));
   }
@@ -334,18 +386,66 @@
     grid-row: var(--mr) / span var(--mrs);
   }
   .collage__cell[data-mobile='hide'] { display: none; }
-  .tile[data-featured='true'] .tile__icon { width: clamp(34px, 32%, 110px); }
-  .tile[data-featured='true'] .tile__meta { transform: translateY(100%); }
+  .tile[data-featured='true'] .tile__icon { width: clamp(28px, min(32cqw, 62cqh), 110px); }
+  .tile[data-featured='true'] .tile__title { font-size: clamp(0.9rem, 1.1vw + 0.5rem, 1.2rem); }
   .tile__host { display: none; }
+  /* Small phone tiles: the title alone names the project (the role is in the
+     panel + aria-label), so the icon keeps some room. */
+  .tile__role { display: none; }
   .ctitle__name { font-size: clamp(2.6rem, 14vw, 4rem); }
+}
+/* Narrow window with a mouse: featured tiles are single cells here, so their
+   meta reveals on hover like the rest instead of covering the icon. */
+@media (max-width: 720px) and (hover: hover) {
+  .tile[data-featured='true']:not(:hover) .tile__meta { transform: translateY(100%); }
+}
+
+/* ---- Phone landscape (≤500px tall): a grid can't give rows enough height
+   for the icon + the always-visible meta, so the projects become one row of
+   tall tiles in a horizontal snap-scrolling strip (title first, decor off).
+   Vertical swipes still drive the page; horizontal ones browse the strip. ---- */
+@media (max-height: 500px) {
+  .collage__grid {
+    inset: 54px 0 34px;
+    max-width: none;
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    padding: 0 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+  }
+  .collage__grid::-webkit-scrollbar { display: none; }
+  .collage__cell {
+    flex: 0 0 auto;
+    width: clamp(150px, 24vw, 210px);
+    order: var(--pi);
+    scroll-snap-align: start;
+    transform: none;
+  }
+  .collage__cell[data-kind='decor'] { display: none; }
+  .collage__cell[data-kind='title'] { width: auto; }
+  .ctitle__name {
+    font-size: clamp(2rem, 12vh, 3.2rem);
+    writing-mode: vertical-rl;
+    rotate: 180deg;
+  }
+  .tile__host { display: block; }
+  .tile[data-featured='true'] .tile__icon { width: clamp(28px, min(40cqw, 55cqh), 110px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .collage__cell { transform: none; }
+  .collage__pop { filter: none; }
   .collage__pop,
   .tile,
   .tile__meta,
   .tile__icon { transition: opacity 0.2s ease !important; }
-  .tile:hover,
-  .tile:hover .tile__icon img { animation: none !important; }
+  /* Same selector as the hover rule so it wins on source order. */
+  .collage[data-active='true'] .tile:hover,
+  .tile:hover .tile__icon img { animation: none; }
 }

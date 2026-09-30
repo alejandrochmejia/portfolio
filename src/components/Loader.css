@@ -22,7 +22,7 @@
 }
 .ldr__name {
   position: relative;
-  font-family: 'Anton', sans-serif;
+  font-family: var(--display);
   font-size: clamp(20px, 4vw, 34px);
   letter-spacing: 0.22em;
   color: rgba(255, 255, 255, 0.28);

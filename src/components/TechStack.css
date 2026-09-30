@@ -14,7 +14,19 @@
   position: relative;
   /* Taller than the screen: the content is pinned while it powers on / off. */
   height: 300svh;
-  background: var(--bg);
+}
+
+/* Visually hidden, still read by screen readers (full tech list, live region). */
+.tstack__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .tstack__pin {
@@ -22,14 +34,17 @@
   top: 0;
   height: 100svh;
   overflow: clip;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: clamp(1rem, 3vh, 2rem);
-  padding: clamp(40px, 7vh, 80px) clamp(12px, 3vw, 40px);
+  /* A flex column all the way down (screen → tv → win → stage): when the
+     screen is short the stage shrinks, so title + inventory always fit. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 3svh, 2rem);
+  padding: clamp(24px, 7svh, 80px) clamp(12px, 3vw, 40px);
 }
-/* Content above the Sparkles backdrop (TechBackdrop.tsx). */
-.tstack__pin > :not(.tstack__bg) {
+/* Content above the pinned layer's own stacking. */
+.tstack__pin > * {
   position: relative;
   z-index: 1;
 }
@@ -37,6 +52,7 @@
 /* ---- Title: drops in with an RGB split, lifts off blurred ---- */
 .tstack__head {
   position: relative;
+  flex: none;
   width: max-content;
   opacity: var(--ti);
   transform: translateY(calc((1 - var(--ti)) * (26px - var(--lift) * 70px)));
@@ -50,11 +66,17 @@
 .tstack__screen {
   position: relative;
   width: min(1180px, 100%);
-  display: grid;
-  place-items: center;
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .tstack__tv {
   width: 100%;
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   opacity: var(--fade);
   transform: scale(var(--sx), var(--sy));
   transform-origin: 50% 50%;
@@ -94,7 +116,8 @@
   margin: 0;
   font-family: var(--display);
   font-weight: 400;
-  font-size: clamp(2.6rem, 6.4vw, 5.2rem);
+  /* Also bounded by the height, so short laptops don't lose stage space to it. */
+  font-size: clamp(2.2rem, min(6.4vw, 10svh), 5.2rem);
   line-height: 0.85;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -110,6 +133,8 @@
 .tstack__win {
   --radius: clamp(14px, 1.5vw, 22px);
   width: 100%;
+  flex: 0 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   border: 1px solid transparent;
@@ -124,22 +149,13 @@
   overflow: hidden;
 }
 
-.tstack__bar {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  height: 28px;
-  padding: 0 0.8rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01));
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-}
-.tstack__host { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Unlock counter, first thing in the inventory row. */
 .tstack__score {
+  flex: none;
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -153,6 +169,9 @@
   width: auto;
   aspect-ratio: 16 / 9;
   max-height: 62svh;
+  /* Can shrink below 16:9 when the screen is short (layout() adds columns then). */
+  flex: 0 1 auto;
+  min-height: min(150px, 34svh);
   margin: 6px;
   border-radius: calc(var(--radius) - 6px);
   overflow: hidden;
@@ -160,15 +179,19 @@
     radial-gradient(80% 60% at 50% 0%, rgba(139, 184, 255, 0.16), transparent 70%),
     radial-gradient(60% 50% at 85% 100%, rgba(255, 143, 208, 0.12), transparent 65%),
     #07080d;
-  cursor: crosshair;
   /* Horizontal drags steer the ship on touch; vertical ones still scroll the page. */
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.tstack__stage[data-armed='true'] { cursor: none; }
-/* The cursor comes back only for the "Stack complete" screen. */
-.tstack__stage[data-done='true'] { cursor: default; }
+@media (pointer: fine) {
+  .tstack__stage { cursor: crosshair; }
+  .tstack__stage[data-armed='true'] { cursor: none; }
+  /* The cursor comes back only for the "Stack complete" screen. */
+  .tstack__stage[data-done='true'] { cursor: default; }
+}
 .tstack__stage:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 .tstack__canvas {
@@ -193,7 +216,9 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: 64%;
+  /* Centred in the gap between the blocks and the ship (set by layout()). */
+  top: var(--hint-y, 64%);
+  translate: 0 -50%;
   display: grid;
   justify-items: center;
   gap: 0.3rem;
@@ -203,8 +228,8 @@
 }
 .tstack__reveal-kind {
   font-family: var(--mono);
-  font-size: clamp(0.56rem, 0.9vw, 0.7rem);
-  letter-spacing: 0.22em;
+  font-size: var(--fs-meta);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--c);
   text-shadow: 0 0 10px var(--c);
@@ -212,7 +237,7 @@
 .tstack__reveal-name {
   position: relative;
   font-family: var(--display);
-  font-size: clamp(2.2rem, 7vw, 5.6rem);
+  font-size: clamp(1.8rem, min(7vw, 13svh), 5.6rem);
   line-height: 0.9;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -251,16 +276,18 @@
   100% { transform: none; clip-path: inset(0 0 100% 0); }
 }
 
-/* ---- "Click to play" hint ---- */
+/* ---- "Click / Tap to play" hint ---- */
 .tstack__hint {
   position: absolute;
-  left: 50%;
-  bottom: 22%;
-  translate: -50% 0;
-  display: grid;
-  justify-items: center;
-  gap: 0.35rem;
-  padding: 0.6rem 1rem;
+  left: 0;
+  right: 0;
+  /* Between the last row of blocks and the ship (set by layout()). */
+  top: var(--hint-y, 72%);
+  translate: 0 -50%;
+  width: max-content;
+  max-width: 80%;
+  margin-inline: auto;
+  padding: 0.6rem 1.1rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(10, 12, 20, 0.55);
@@ -269,10 +296,25 @@
   pointer-events: none;
   text-align: center;
   font-family: var(--mono);
-  white-space: nowrap;
 }
-.tstack__hint b {
-  font-size: 0.72rem;
+/* Mouse/keyboard copy by default; the touch copy with a coarse pointer. */
+.tstack__hint-v {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+}
+.tstack__hint-v--coarse { display: none; }
+@media (pointer: coarse) {
+  .tstack__hint-v--fine { display: none; }
+  .tstack__hint-v--coarse { display: grid; }
+  .tstack__hint {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(10, 12, 20, 0.82);
+  }
+}
+.tstack__hint-go {
+  font-size: var(--fs-meta);
   letter-spacing: 0.24em;
   text-transform: uppercase;
   background: linear-gradient(90deg, var(--blue), var(--pink));
@@ -281,10 +323,19 @@
   color: transparent;
   animation: y2k-blink 1.2s steps(2, start) infinite;
 }
-.tstack__hint span {
-  font-size: 0.6rem;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.55);
+.tstack__hint-keys {
+  font-size: var(--fs-meta);
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.62);
+}
+/* Small / touch screens: a compact card instead of a big pill over the ship. */
+@media (max-width: 720px), (pointer: coarse), (max-height: 500px) {
+  .tstack__hint {
+    padding: 0.45rem 0.8rem;
+    border-radius: 14px;
+  }
+  .tstack__hint-v { gap: 0.2rem; }
 }
 
 /* ---- Completed ---- */
@@ -303,7 +354,7 @@
   display: inline-flex;
   gap: 0.4rem;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: var(--fs-meta);
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: #7dffb0;
@@ -330,7 +381,7 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
   color: var(--fg);
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: var(--fs-meta);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   cursor: pointer;
@@ -344,6 +395,7 @@
 
 /* ---- Inventory ---- */
 .tstack__foot {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -352,6 +404,7 @@
 }
 .tstack__inv {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
@@ -365,21 +418,14 @@
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
+  font-size: var(--fs-meta);
+  line-height: 1.3;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.25);
+  white-space: nowrap;
+  /* Always legible (the stack reads without playing); unlocking adds colour + glow. */
+  color: rgba(255, 255, 255, 0.45);
   transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
-}
-.tstack__inv li[data-got='false'] .tstack__chip-name { opacity: 0; }
-.tstack__chip-mask {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  letter-spacing: 0;
-  font-size: 0.5rem;
-  color: rgba(255, 255, 255, 0.14);
 }
 .tstack__inv li[data-got='true'] {
   color: var(--c);
@@ -392,22 +438,72 @@
   from { transform: scale(0.6); filter: brightness(2.2); }
 }
 
+/* Tablet portrait: use the extra height. */
+@media (min-width: 721px) and (max-width: 1024px) and (orientation: portrait) {
+  .tstack__stage { aspect-ratio: 4 / 3; }
+}
+
 @media (max-width: 720px) {
+  .tstack { height: 240svh; }
   .tstack__stage { aspect-ratio: 3 / 4; max-height: 58svh; }
-  .tstack__foot { flex-direction: column; align-items: stretch; }
-  .tstack__inv li { font-size: 0.56rem; padding: 0.24rem 0.5rem; }
-  .tstack__hint span { white-space: normal; }
+  .tstack__foot { flex-direction: column; align-items: stretch; gap: 0.6rem; }
+  .tstack__inv { gap: 0.3rem; }
+  .tstack__inv li { padding: 0.22rem 0.5rem; }
   .tstack__spark--l { left: -1.6rem; }
   .tstack__spark--r { right: -1.4rem; }
 }
 
+/* Short screens (1366×650 laptops, 360×640 phones): tighter chrome, the stage takes what's left. */
+@media (max-height: 700px) {
+  .tstack__pin {
+    padding-block: clamp(14px, 5svh, 40px);
+    gap: clamp(0.5rem, 2svh, 1rem);
+  }
+  .tstack__foot { padding: 0.45rem 0.7rem 0.55rem; }
+  .tstack__inv { gap: 0.3rem; }
+}
+
+/* Landscape phones (844×390…): title, stage and a single scrolling row of chips. */
+@media (max-height: 500px) {
+  .tstack__pin {
+    gap: 6px;
+    padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  }
+  .tstack__title { font-size: 1.8rem; }
+  .tstack__spark { display: none; }
+  .tstack__stage {
+    aspect-ratio: auto;
+    height: 62svh;
+    max-height: none;
+    min-height: 0;
+    margin: 4px;
+  }
+  .tstack__foot {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.3rem 0.6rem 0.4rem;
+  }
+  .tstack__inv {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding-block: 2px;
+  }
+  .tstack__inv::-webkit-scrollbar { display: none; }
+  .tstack__inv li { flex: none; padding: 0.2rem 0.5rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* Shorter scroll: there's no power on/off animation to watch. */
+  .tstack { height: 160svh; }
   .tstack__reveal,
   .tstack__reveal-name::before,
   .tstack__reveal-name::after,
-  .tstack__hint b,
   .tstack__inv li,
   .tstack__done { animation-duration: 0.01s; }
+  .tstack__hint-go { animation: none; }
   .tstack[data-fx='on'] .tstack__win { animation: none; }
   .tstack__head { transform: none; filter: none; }
   .tstack__reveal { animation: ts-fade 1.9s linear forwards; }

@@ -1,3 +1,5 @@
+import type { L10n } from '../i18n.ts'
+
 /** Technologies shown as blocks in the Tech Stack mini-game. Order = grid order
  *  (row by row). `color` tints the block and its explosion; `kind` is the small
  *  label shown next to the name when the block is destroyed; `icon` is the logo
@@ -32,3 +34,15 @@ export const TECH: Tech[] = [
   { name: 'Python', kind: 'Language', color: '#7fe3ff', icon: '/tech/python.svg' },
   { name: 'Java', kind: 'Language', color: '#f6c56b', icon: '/tech/java.svg' },
 ]
+
+/** Visible label for each `kind` (the key stays in English for the data). */
+export const KIND: Record<Tech['kind'], L10n> = {
+  Frontend: { es: 'Frontend', en: 'Frontend' },
+  Backend: { es: 'Backend', en: 'Backend' },
+  Mobile: { es: 'Móvil', en: 'Mobile' },
+  Data: { es: 'Datos', en: 'Data' },
+  AI: { es: 'IA', en: 'AI' },
+  Automation: { es: 'Automatización', en: 'Automation' },
+  DevOps: { es: 'DevOps', en: 'DevOps' },
+  Language: { es: 'Lenguaje', en: 'Language' },
+}

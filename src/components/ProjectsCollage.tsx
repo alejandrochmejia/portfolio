@@ -1,5 +1,6 @@
 import { type CSSProperties, type Ref } from 'react'
 import { PROJECTS, type Project } from './projectsData.ts'
+import { tr, useCopy, useLang } from '../i18n.ts'
 import { COLLAGE, entryOrder, type CollageItem, type DecorKind } from './collageLayout.ts'
 import { Blink, ChromeStar, RingBadge, SegLoader, WindowDots } from './y2k.tsx'
 import './ProjectsCollage.css'
@@ -14,21 +15,33 @@ type Props = {
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
+const COPY = {
+  es: { title: 'Proyectos', online: 'En línea', loading: 'Cargando trabajos…', badge: 'PROYECTOS ✦ ALEJANDRO CHÁVEZ ✦ ' },
+  en: { title: 'Projects', online: 'Online', loading: 'Loading work…', badge: 'SELECTED WORK ✦ ALEJANDRO CHÁVEZ ✦ ' },
+}
+
 /** Grid placement + parallax depth + entry order as CSS vars on the cell. */
 function cellStyle(item: CollageItem, i: number): CSSProperties {
   const [c, r, cs = 1, rs = 1] = item.d
+  const [tc, tRow, tcs = 1, trs = 1] = item.t
   const m = item.m
   return {
     '--c': c,
     '--r': r,
     '--cs': cs,
     '--rs': rs,
+    '--tc': tc,
+    '--tr': tRow,
+    '--tcs': tcs,
+    '--trs': trs,
     '--mc': m ? m[0] : 1,
     '--mr': m ? m[1] : 1,
     '--mcs': m?.[2] ?? 1,
     '--mrs': m?.[3] ?? 1,
     '--z': item.depth,
     '--o': entryOrder(i),
+    // Phone-landscape strip order (title first, then projects by index).
+    '--pi': item.kind === 'project' ? item.index + 1 : 0,
   } as CSSProperties
 }
 
@@ -68,10 +81,12 @@ export function ProjectsCollage({ ref, active, onSelect }: Props) {
 }
 
 function CollageTitle() {
+  const t = useCopy(COPY)
   return (
     <div className="ctitle">
       <h2 className="ctitle__name y2k-chrome">
-        Projects<sup>✦</sup>
+        {t.title}
+        <sup aria-hidden="true">✦</sup>
       </h2>
     </div>
   )
@@ -86,6 +101,8 @@ type TileProps = {
 }
 
 function ProjectTile({ project, index, featured, tabbable, onSelect }: TileProps) {
+  const lang = useLang()
+  const role = tr(project.role, lang)
   const host = project.demo
     ? new URL(project.demo).host
     : `gh/${project.repo?.split('/').pop() ?? ''}`
@@ -94,10 +111,11 @@ function ProjectTile({ project, index, featured, tabbable, onSelect }: TileProps
       type="button"
       className="tile"
       data-featured={featured}
+      data-index={index}
       tabIndex={tabbable ? 0 : -1}
       style={{ '--accent': project.accent } as CSSProperties}
       onClick={() => onSelect(index)}
-      aria-label={`${project.title} — ${project.role}`}
+      aria-label={`${project.title} — ${role} · ${project.year}`}
     >
       {/* Y2K OS-window title bar. */}
       <span className="tile__bar" aria-hidden="true">
@@ -117,10 +135,10 @@ function ProjectTile({ project, index, featured, tabbable, onSelect }: TileProps
         <span className="tile__scan" />
       </span>
 
-      <span className="tile__meta">
+      <span className="tile__meta" aria-hidden="true">
         <span className="tile__title">{project.title}</span>
         <span className="tile__role">
-          {project.role} · {project.year}
+          {role} · {project.year}
         </span>
       </span>
     </button>
@@ -128,17 +146,18 @@ function ProjectTile({ project, index, featured, tabbable, onSelect }: TileProps
 }
 
 function DecorTile({ kind }: { kind: DecorKind }) {
+  const t = useCopy(COPY)
   if (kind === 'star')
     return (
-      <div className="decor decor--star">
+      <div className="decor decor--star" aria-hidden="true">
         <ChromeStar />
       </div>
     )
 
   if (kind === 'badge')
     return (
-      <div className="decor decor--badge">
-        <RingBadge text="SELECTED WORK ✦ ALEJANDRO CHÁVEZ ✦ " />
+      <div className="decor decor--badge" aria-hidden="true">
+        <RingBadge text={t.badge} />
       </div>
     )
 
@@ -147,14 +166,14 @@ function DecorTile({ kind }: { kind: DecorKind }) {
       <div className="decor decor--count" aria-hidden="true">
         <span className="decor__big">{pad(PROJECTS.length)}</span>
         <span className="decor__label">
-          <Blink /> Online
+          <Blink /> {t.online}
         </span>
       </div>
     )
 
   return (
     <div className="decor decor--loader" aria-hidden="true">
-      <span className="decor__label">Loading work…</span>
+      <span className="decor__label">{t.loading}</span>
       <SegLoader />
       <span className="decor__label decor__label--dim">© 2026 · v3</span>
     </div>

@@ -4,8 +4,8 @@
   --size: 52px;
   --gap: clamp(14px, 2.2vw, 28px);
   position: fixed;
-  top: var(--gap);
-  right: var(--gap);
+  top: calc(var(--gap) + env(safe-area-inset-top));
+  right: calc(var(--gap) + env(safe-area-inset-right));
   z-index: 60;
   width: var(--size);
   height: var(--size);
@@ -26,7 +26,9 @@
   overflow: hidden;
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.menu-btn:hover { transform: scale(1.07) rotate(-8deg); }
+@media (hover: hover) {
+  .menu-btn:hover { transform: scale(1.07) rotate(-8deg); }
+}
 .menu-btn:active { transform: scale(0.94); }
 .menu-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 
@@ -119,7 +121,294 @@
   place-items: center;
 }
 
+/* ==== Section links: `/path`, the slash morphs into a chrome arrow ==== */
+
+@property --len {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px; /* must be absolute; the real rest value is set below */
+}
+
+.menu__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  display: grid;
+  gap: clamp(0.1rem, 1.4vh, 0.9rem);
+}
+
+/* Staggered pop-in once the genie has (nearly) landed; instant on close. */
+.menu__list li {
+  opacity: 0;
+  translate: 0 0.8rem;
+  filter: blur(6px);
+  transition: opacity 0.2s ease, translate 0.2s ease, filter 0.2s ease;
+}
+.menu[data-open='true'] .menu__list li {
+  opacity: 1;
+  translate: none;
+  filter: none;
+  transition:
+    opacity 0.4s ease,
+    translate 0.55s cubic-bezier(0.2, 0.9, 0.2, 1.2),
+    filter 0.4s ease;
+  transition-delay: calc(380ms + var(--i) * 60ms);
+}
+
+.mlink {
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.14em;
+  padding: 0.06em 0.36em 0.02em 0.2em;
+  border-radius: 0.22em;
+  font-size: clamp(2.3rem, 1rem + 5.2vw, 5.2rem);
+  color: var(--fg);
+  text-decoration: none;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.3s ease;
+}
+.mlink:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+
+/* Glass highlight that sweeps in behind the row. */
+.mlink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(90deg, rgba(139, 184, 255, 0.16), rgba(255, 143, 208, 0.1) 60%, transparent),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 3px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  opacity: 0;
+  transform: scaleX(0.6);
+  transform-origin: left center;
+  transition: opacity 0.3s ease, transform 0.45s var(--spring);
+}
+
+.mlink__idx {
+  align-self: flex-start;
+  margin: 0.42em 0.5rem 0 0;
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+
+/* The glyph: bar 1 is the slash (rotated) that levels out into the shaft;
+   bars 2–3 are the arrowhead, folded away at rest. */
+.mlink__glyph {
+  --t: 0.085em;
+  --len: 0.82em;
+  position: relative;
+  flex: none;
+  width: 0.4em;
+  height: 0.8em;
+  transition: width 0.45s var(--spring), --len 0.45s var(--spring);
+}
+.mlink__glyph i {
+  position: absolute;
+  top: 50%;
+  height: var(--t);
+  border-radius: var(--t);
+  background: linear-gradient(90deg, #ffffff, var(--blue) 45%, var(--pink));
+  box-shadow: 0 0 0.14em rgba(139, 184, 255, 0.55);
+}
+.mlink__glyph i:nth-child(1) {
+  left: 50%;
+  width: var(--len);
+  translate: -50% -50%;
+  rotate: -66deg;
+  transition: rotate 0.45s var(--spring);
+}
+.mlink__glyph i:nth-child(2),
+.mlink__glyph i:nth-child(3) {
+  left: calc(50% + var(--len) / 2 - 0.3em);
+  width: 0.3em;
+  translate: 0 -50%;
+  transform-origin: calc(100% - var(--t) / 2) 50%;
+  scale: 0 1;
+  opacity: 0;
+  transition: scale 0.3s var(--spring), opacity 0.2s ease, rotate 0.3s var(--spring);
+}
+.mlink__glyph i:nth-child(2) { rotate: 90deg; }
+.mlink__glyph i:nth-child(3) { rotate: -90deg; }
+
+.mlink__path {
+  position: relative;
+  font-family: var(--display);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  transition: translate 0.45s var(--spring);
+}
+/* RGB-split ghosts for the hover glitch. */
+.mlink__path::before,
+.mlink__path::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  padding-top: 0.14em; /* same as .y2k-chrome */
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.mlink__path::before { color: var(--pink); }
+.mlink__path::after { color: var(--blue); }
+
+.mlink__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  align-self: flex-end;
+  margin: 0 0 0.5em 0.9rem;
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted);
+  transition: color 0.3s ease, translate 0.45s var(--spring);
+}
+
+/* Current section: pink slash + blinking dot. */
+.mlink[aria-current] .mlink__idx { color: var(--pink); }
+.mlink[aria-current] .mlink__glyph i { background: linear-gradient(90deg, #ffffff, var(--pink)); }
+.mlink[aria-current] .mlink__label { color: var(--cream); }
+
+/* ---- Hover / focus / click: "/" → "→" ---- */
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__glyph {
+  --len: 0.66em;
+  width: 0.78em;
+}
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__glyph i:nth-child(1) { rotate: 0deg; }
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__glyph i:nth-child(2),
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__glyph i:nth-child(3) {
+  scale: 1 1;
+  opacity: 1;
+  transition-delay: 0.08s;
+}
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__glyph i:nth-child(2) { rotate: 40deg; }
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__glyph i:nth-child(3) { rotate: -40deg; }
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__path { translate: 0.1em 0; }
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__path::before { animation: mlink-glitch 0.5s steps(2, end) 1 both; }
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__path::after { animation: mlink-glitch 0.5s steps(2, end) 1 reverse both; }
+.mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__label { color: var(--fg); translate: 0.2em 0; }
+.mlink:is(:hover, :focus-visible, [data-go='true'])::after { opacity: 1; transform: none; }
+.mlink:is(:hover, :focus-visible) .mlink__idx { color: var(--blue); }
+
+/* Others step back while one is hovered / chosen. */
+@media (hover: hover) {
+  .menu__list:has(.mlink:hover) .mlink:not(:hover) { opacity: 0.35; }
+}
+.menu__list[data-going='true'] .mlink:not([data-go='true']) { opacity: 0.2; }
+
+/* Click: the arrow shoots right and the path flashes before the jump. */
+.mlink[data-go='true'] .mlink__glyph { animation: mlink-shoot 0.26s cubic-bezier(0.5, 0, 0.75, 0) both; }
+.mlink[data-go='true'] .mlink__path { animation: mlink-flash 0.26s ease both; }
+
+@keyframes mlink-glitch {
+  0% { opacity: 0.9; translate: -0.05em 0; clip-path: inset(8% 0 58% 0); }
+  35% { opacity: 0.9; translate: 0.05em 0; clip-path: inset(62% 0 6% 0); }
+  70% { opacity: 0.7; translate: -0.025em 0; clip-path: inset(30% 0 38% 0); }
+  100% { opacity: 0; translate: none; clip-path: inset(0); }
+}
+@keyframes mlink-shoot {
+  45% { translate: -0.06em 0; }
+  100% { translate: 0.55em 0; opacity: 0; }
+}
+@keyframes mlink-flash {
+  40% { filter: brightness(1.9) drop-shadow(0 0 0.12em rgba(139, 184, 255, 0.8)); }
+}
+
+/* Language switch: a tiny chrome-rimmed ES / EN pill, top-left (mirrors the close button). */
+.menu__lang {
+  --gap: clamp(14px, 2.2vw, 28px);
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--gap) + env(safe-area-inset-top) + 8px);
+  left: calc(var(--gap) + env(safe-area-inset-left));
+  display: flex;
+  padding: 3px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(14, 14, 20, 0.6), rgba(14, 14, 20, 0.6)) padding-box,
+    var(--rim) border-box;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.menu[data-open='true'] .menu__lang { opacity: 1; transition: opacity 0.4s ease 0.5s; }
+.menu__lang button {
+  min-width: 44px;
+  height: 30px;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 99px;
+  background: none;
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.25s ease;
+}
+.menu__lang button[aria-pressed='true'] {
+  color: #16181f;
+  background: var(--rim);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+}
+.menu__lang button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (hover: hover) {
+  .menu__lang button[aria-pressed='false']:hover { color: var(--fg); }
+}
+
+/* Chrome socials (shared with the Contact section) along the bottom. */
+.menu__socials {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(clamp(24px, 6vh, 56px) + env(safe-area-inset-bottom));
+  opacity: 0;
+  translate: 0 0.8rem;
+  transition: opacity 0.2s ease, translate 0.2s ease;
+}
+.menu[data-open='true'] .menu__socials {
+  opacity: 1;
+  translate: none;
+  transition: opacity 0.4s ease 0.78s, translate 0.55s cubic-bezier(0.2, 0.9, 0.2, 1.2) 0.78s;
+}
+.menu__socials .contact__btn { width: 44px; height: 44px; }
+.menu__socials .contact__btn svg { width: 19px; height: 19px; }
+
+/* Phone landscape: five rows must fit ~390px. */
+@media (max-height: 500px) {
+  .mlink { font-size: clamp(1.5rem, 9.5svh, 2.4rem); }
+  .menu__list { gap: 0; margin-top: -40px; }
+  .menu__socials { bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .menu__socials .contact__btn { width: 38px; height: 38px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .menu-btn,
-  .menu-btn__bars i { transition-duration: 0.01s; }
+  .menu-btn__bars i,
+  .menu__list li,
+  .menu__socials,
+  .menu__lang,
+  .menu__lang button,
+  .mlink,
+  .mlink *,
+  .mlink::after { transition-duration: 0.01s !important; transition-delay: 0s !important; }
+  .mlink__path::before,
+  .mlink__path::after,
+  .mlink[data-go='true'] .mlink__glyph,
+  .mlink[data-go='true'] .mlink__path { animation: none !important; }
 }
+

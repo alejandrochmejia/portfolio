@@ -1,0 +1,89 @@
+/* ==== Contact: chrome title + small chrome circle links ==== */
+
+.contact {
+  min-height: 70svh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: clamp(1.6rem, 4vh, 2.6rem);
+  padding: clamp(64px, 12vh, 120px) 16px calc(clamp(64px, 12vh, 120px) + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.contact__title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 6.4vw, 5.2rem);
+  line-height: 0.85;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.contact__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(12px, 2vw, 18px);
+}
+
+.contact__btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  color: #1b1d25;
+  /* Chrome body with a darker rim. */
+  background:
+    radial-gradient(120% 90% at 30% 18%, rgba(255, 255, 255, 0.9), transparent 45%) padding-box,
+    var(--rim) padding-box,
+    linear-gradient(160deg, #ffffff, #4f5463) border-box;
+  border: 1.5px solid transparent;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(139, 184, 255, 0.12),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.contact__btn svg {
+  width: 22px;
+  height: 22px;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
+}
+.contact__btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+/* Gloss sweep, same as the menu button. */
+.contact__btn::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.6) 50%, transparent 62%);
+  transform: translateX(-110%);
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .contact__btn:hover {
+    transform: translateY(-3px) scale(1.06);
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, 0.5),
+      0 0 24px rgba(255, 143, 208, 0.25),
+      inset 0 -3px 6px rgba(0, 0, 0, 0.25);
+  }
+  .contact__btn:hover::after {
+    transform: translateX(110%);
+    transition: transform 0.7s ease;
+  }
+}
+.contact__btn:active { transform: scale(0.94); }
+
+@media (prefers-reduced-motion: reduce) {
+  .contact__btn { transition: none; }
+  .contact__btn::after { display: none; }
+}

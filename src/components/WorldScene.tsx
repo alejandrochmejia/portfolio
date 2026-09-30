@@ -1,6 +1,6 @@
 import { useRef, type MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Environment, Lightformer, Sparkles } from '@react-three/drei'
+import { Environment, Lightformer } from '@react-three/drei'
 import { type Group } from 'three'
 import { HeroRig } from './HeroRig.tsx'
 import { AboutMarquee } from './AboutMarquee.tsx'
@@ -12,7 +12,8 @@ type Props = {
 }
 
 /** The single 3D world: the hero rig (which scrolls away) and the About barrel,
- *  lit by a studio env. The projects collage is DOM, layered over this canvas. */
+ *  lit by a studio env. The projects collage is DOM, layered over this canvas.
+ *  No background/Sparkles here: the canvas is transparent over SiteBackdrop. */
 export function WorldScene({ progress }: Props) {
   const heroRef = useRef<Group>(null)
 
@@ -29,7 +30,6 @@ export function WorldScene({ progress }: Props) {
 
   return (
     <>
-      <color attach="background" args={['#050506']} />
       <ambientLight intensity={0.5} />
       <directionalLight position={[3, 4, 5]} intensity={2} />
 
@@ -39,9 +39,7 @@ export function WorldScene({ progress }: Props) {
 
       <AboutMarquee progress={progress} />
 
-      <Sparkles count={QUALITY.sparkles} scale={[14, 8, 4]} size={3} speed={0.2} color="#ffffff" opacity={0.6} />
-
-      <Environment resolution={512}>
+      <Environment resolution={QUALITY.envResolution}>
         <Lightformer form="rect" intensity={1.6} position={[0, 0, 12]} scale={[50, 50, 1]} color="#c7d0e2" />
         <Lightformer form="rect" intensity={3} position={[0, 9, 3]} rotation={[Math.PI / 2, 0, 0]} scale={[30, 30, 1]} color="#ffffff" />
         <Lightformer form="rect" intensity={1.2} position={[0, -9, 3]} rotation={[-Math.PI / 2, 0, 0]} scale={[30, 30, 1]} color="#dfe6ff" />

@@ -1,7 +1,7 @@
 .world {
   position: relative;
-  height: 440vh;
-  background: #050506;
+  /* svh (not vh): on iOS vh grows as the URL bar hides, making the scroll jump. */
+  height: 440svh;
 }
 
 .world__pin {
@@ -31,6 +31,7 @@
   transform: translateX(-50%);
   margin: 0;
   display: flex;
+  justify-content: center;
   gap: 0.7em;
   font-size: clamp(0.7rem, 1.4vw, 0.92rem);
   letter-spacing: 0.28em;
@@ -43,61 +44,92 @@
 .world__dot { opacity: 0.5; }
 .world__overlay[data-phase='name'] .world__tag { opacity: 1; }
 
+@media (max-width: 720px) {
+  .world__tag { letter-spacing: 0.18em; }
+}
+/* Narrow phones: the tagline stacks on two centred lines. 440px rather than
+   380px because the Spanish copy ("Desarrollador Full-Stack · Ingeniero de IA")
+   no longer fits on one line below ~440px. */
+@media (max-width: 440px) {
+  .world__tag {
+    flex-wrap: wrap;
+    row-gap: 0.45em;
+    width: calc(100% - 32px);
+    letter-spacing: 0.14em;
+    white-space: normal;
+    text-align: center;
+  }
+  .world__tag > span:not(.world__dot) { flex-basis: 100%; }
+  .world__dot { display: none; }
+}
+
 .world__hint {
   position: absolute;
   left: 50%;
   bottom: 3.4%;
   transform: translateX(-50%);
   font-family: var(--mono, ui-monospace, monospace);
-  font-size: 0.66rem;
-  letter-spacing: 0.22em;
+  font-size: var(--fs-meta);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--faint, #55565f);
+  color: var(--faint);
   white-space: nowrap;
   transition: opacity 0.5s ease;
+}
+/* Copy follows the input: pointer with hover → "click", touch → "tap". */
+.world__hint-touch { display: none; }
+@media (hover: none) {
+  .world__hint-mouse { display: none; }
+  .world__hint-touch { display: inline; }
+}
+.world__arrow {
+  display: inline-block;
+  animation: hint-bounce 1.8s ease-in-out infinite;
+}
+@keyframes hint-bounce {
+  0%, 60%, 100% { transform: none; }
+  30% { transform: translateY(4px); }
 }
 .world__overlay[data-phase='none'] .world__hint { opacity: 0; }
 .world__overlay[data-open='true'] .world__hint,
 .world__overlay[data-open='true'] .world__tag { opacity: 0; }
 
-/* ---- Detail panel ---- */
+/* ---- Detail panel: native modal <dialog> (top layer). The dialog itself is
+   the full-screen dimmed backdrop; a click on it (outside the card) closes. ---- */
 .detail {
   position: fixed;
   inset: 0;
-  z-index: 10;
-  display: grid;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  color: inherit;
+  display: none;
   place-items: center;
   padding: clamp(1rem, 4vw, 3rem);
   background: rgba(4, 4, 7, 0.6);
   backdrop-filter: blur(7px);
+  overscroll-behavior: contain;
+}
+.detail[open] {
+  display: grid;
   animation: detail-fade 0.3s ease both;
 }
+.detail::backdrop { background: transparent; }
 @keyframes detail-fade {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-.detail__close {
-  position: absolute;
-  top: clamp(1rem, 3vw, 2rem);
-  right: clamp(1rem, 3vw, 2rem);
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(20, 22, 30, 0.6);
-  color: var(--fg, #f6f5f2);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.2s ease;
-}
-.detail__close:hover { transform: rotate(90deg); border-color: rgba(255, 255, 255, 0.5); }
-
 .detail__card {
+  position: relative;
   width: min(980px, 100%);
   max-height: 86svh;
   display: grid;
   grid-template-columns: 1.15fr 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   border-radius: 28px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -106,6 +138,8 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 40px 90px rgba(0, 0, 0, 0.6);
+  /* Vertical scroll stays native; horizontal swipes go to prev/next. */
+  touch-action: pan-y;
   animation: detail-pop 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) both;
 }
 @keyframes detail-pop {
@@ -113,12 +147,57 @@
   to { opacity: 1; transform: none; }
 }
 
+/* Y2K window bar: dots · counter · ‹ › ✕ */
+.detail__bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.45rem 0.6rem 0.45rem 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01));
+}
+.detail__count {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: var(--fs-meta);
+  letter-spacing: 0.18em;
+  color: var(--muted, #8a8a90);
+  font-variant-numeric: tabular-nums;
+}
+.detail__nav {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+.detail__btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(20, 22, 30, 0.6);
+  color: var(--fg, #f6f5f2);
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+}
+.detail__btn:hover { border-color: rgba(255, 255, 255, 0.5); }
+.detail__btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.detail__close { font-size: 0.95rem; }
+.detail__close:hover { transform: rotate(90deg); }
+
 /* Preview (placeholder for a screenshot / live embed). */
 .detail__preview {
+  --accent: var(--blue);
   position: relative;
   min-height: 260px;
   display: grid;
   place-items: center;
+  align-content: center;
   gap: 1rem;
   padding: 1.5rem;
   background:
@@ -126,6 +205,21 @@
     radial-gradient(120% 90% at 80% 90%, rgba(255, 143, 208, 0.2), transparent 60%),
     #0b0d13;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  animation: detail-swap 0.3s ease both;
+}
+/* No live demo: the project's icon, big, lit with its accent. */
+.detail__preview[data-demo='false'] {
+  background:
+    radial-gradient(70% 60% at 50% 42%, color-mix(in oklab, var(--accent) 34%, transparent), transparent 70%),
+    radial-gradient(120% 90% at 80% 90%, rgba(255, 143, 208, 0.14), transparent 60%),
+    #0b0d13;
+}
+.detail__preview-icon {
+  width: clamp(72px, 34%, 168px);
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: 22%;
+  filter: drop-shadow(0 14px 36px color-mix(in oklab, var(--accent) 60%, transparent));
 }
 .detail__preview-glow {
   position: absolute;
@@ -159,13 +253,12 @@
   flex-direction: column;
   gap: 0.55rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: detail-swap 0.3s ease both;
 }
-.detail__count {
-  font-family: var(--mono, ui-monospace, monospace);
-  font-size: 0.72rem;
-  letter-spacing: 0.18em;
-  color: var(--muted, #8a8a90);
-  font-variant-numeric: tabular-nums;
+@keyframes detail-swap {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .detail__title {
   margin: 0.1rem 0 0;
@@ -198,6 +291,16 @@
   line-height: 1.55;
   color: var(--muted, #8a8a90);
 }
+.detail__did strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: var(--fs-meta);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #cfd3dc;
+}
 .detail__stack {
   list-style: none;
   margin: 0.2rem 0 0.4rem;
@@ -207,7 +310,7 @@
   gap: 0.4rem;
 }
 .detail__stack li {
-  font-size: 0.68rem;
+  font-size: var(--fs-meta);
   letter-spacing: 0.04em;
   padding: 0.3em 0.65em;
   border-radius: 99px;
@@ -216,6 +319,7 @@
 }
 .detail__links {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 0.5rem;
 }
@@ -231,9 +335,40 @@
 }
 .detail__links a:hover { transform: translateY(-2px); }
 
-@media (max-width: 720px) {
-  .detail__card { grid-template-columns: 1fr; max-height: 90svh; }
-  .detail__preview { min-height: 180px; border-right: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+/* Phones (portrait + landscape): one column, the whole card scrolls (real
+   internal scroll), shorter preview, and the bar with ‹ › ✕ sticks to the top
+   of the card so the close button never covers the content. */
+@media (max-width: 720px), (max-height: 500px) {
+  .detail { padding: 12px; }
+  .detail__card {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    max-height: 100%;
+    border-radius: 22px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .detail__bar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 0.35rem 0.4rem 0.35rem 0.9rem;
+    background: rgba(18, 20, 28, 0.92);
+    backdrop-filter: blur(12px);
+  }
+  .detail__preview {
+    min-height: 0;
+    height: clamp(120px, 22svh, 160px);
+    padding: 1rem;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .detail__preview-glow { inset: 10%; }
+  .detail__preview-icon { width: auto; height: 62%; }
+  .detail__info { overflow: visible; padding: 1.2rem 1.1rem 1.4rem; }
+}
+@media (max-height: 500px) {
+  .detail__preview { height: 120px; }
 }
 
 .world__sr {
@@ -250,6 +385,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .detail, .detail__card { animation: none; }
+  .detail[open], .detail__card, .detail__preview, .detail__info { animation: none; }
+  .detail__close:hover { transform: none; }
+  .world__arrow { animation: none; }
   .world__tag, .world__hint { transition: none; }
 }
