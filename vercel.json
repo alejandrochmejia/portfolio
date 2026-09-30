@@ -5,19 +5,6 @@
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
   "trailingSlash": true,
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.alejandrochmejia.com"
-        }
-      ],
-      "destination": "https://alejandrochmejia.com/:path*",
-      "permanent": true
-    }
-  ],
   "headers": [
     {
       "source": "/assets/(.*)",
