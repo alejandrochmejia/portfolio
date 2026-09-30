@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useCopy } from '../i18n.ts'
+import { PERSON, PROFILES } from '../seo/site.ts'
 import './Contact.css'
 
 type Link = { id: string; href: string; label: string; icon: ReactNode }
@@ -7,7 +8,7 @@ type Link = { id: string; href: string; label: string; icon: ReactNode }
 const LINKS: Link[] = [
   {
     id: 'github',
-    href: 'https://github.com/alejandrochmejia',
+    href: PROFILES.github,
     label: 'GitHub',
     icon: (
       <path
@@ -18,7 +19,7 @@ const LINKS: Link[] = [
   },
   {
     id: 'linkedin',
-    href: 'https://www.linkedin.com/in/alejandrochmejia',
+    href: PROFILES.linkedin,
     label: 'LinkedIn',
     icon: (
       <path
@@ -29,7 +30,7 @@ const LINKS: Link[] = [
   },
   {
     id: 'instagram',
-    href: 'https://www.instagram.com/alejandrochmejia',
+    href: PROFILES.instagram,
     label: 'Instagram',
     icon: (
       <g fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -41,7 +42,7 @@ const LINKS: Link[] = [
   },
   {
     id: 'email',
-    href: 'mailto:alejandrochmejia@gmail.com',
+    href: `mailto:${PERSON.email}`,
     label: 'Email',
     icon: (
       <g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round">
@@ -68,7 +69,7 @@ export function ContactLinks({ className = '' }: { className?: string }) {
             className="contact__btn"
             href={l.href}
             {...(l.id === 'email' ? {} : { target: '_blank', rel: 'noreferrer' })}
-            aria-label={l.id === 'email' ? `${t.email} (alejandrochmejia@gmail.com)` : l.label}
+            aria-label={l.id === 'email' ? `${t.email} (${PERSON.email})` : l.label}
             title={l.label}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">

@@ -1,28 +1,11 @@
 import { ChromeStar } from './y2k.tsx'
-import { useCopy } from '../i18n.ts'
+import { tr, useCopy, useLang } from '../i18n.ts'
+import { ABOUT_FACTS } from './aboutData.ts'
 import './AboutHud.css'
 
 const COPY = {
-  es: {
-    title: 'Sobre mí',
-    facts: [
-      '3+ años de experiencia',
-      '20+ proyectos en producción',
-      'Desarrollador Full Stack',
-      'Ingeniero en Computación e IA',
-      'Desde Venezuela: nacido en Caracas, hoy en Valencia',
-    ],
-  },
-  en: {
-    title: 'About me',
-    facts: [
-      '3+ years of experience',
-      '20+ projects in production',
-      'Full Stack Developer',
-      'AI & Computer Engineer',
-      'From Venezuela: born in Caracas, now in Valencia',
-    ],
-  },
+  es: { title: 'Sobre mí' },
+  en: { title: 'About me' },
 }
 
 /** DOM overlay for the "Sobre mí" phase: a chrome Y2K title up top with a couple of
@@ -31,6 +14,7 @@ const COPY = {
  *  WebGL, so they're mirrored here as a visually hidden list for screen readers. */
 export function AboutHud() {
   const t = useCopy(COPY)
+  const lang = useLang()
   return (
     <div className="ahud">
       <div className="ahud__title">
@@ -43,8 +27,8 @@ export function AboutHud() {
       </div>
 
       <ul className="ahud__sr">
-        {t.facts.map((f) => (
-          <li key={f}>{f}</li>
+        {ABOUT_FACTS.map((f) => (
+          <li key={f.en}>{tr(f, lang)}</li>
         ))}
       </ul>
 

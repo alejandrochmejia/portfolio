@@ -4,7 +4,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -15,12 +14,18 @@ import { ProjectsCollage } from './ProjectsCollage.tsx'
 import { AboutHud } from './AboutHud.tsx'
 import { track, FIELD_IN, FIELD_OUT } from './choreography.ts'
 import { QUALITY } from './quality.ts'
-import { tr, useCopy, useLang } from '../i18n.ts'
-import { WindowDots } from './y2k.tsx'
+import { useCopy } from '../i18n.ts'
+import { ProjectDesktop } from './ProjectDesktop.tsx'
+import { createGenie, type GenieInstance } from 'genie-web'
+import { captureDesktop, warmup } from './desktopGenie.ts'
 import './World.css'
 
+/** Same genie timing as the menu (Menu.tsx): the panel warps out of the tile. */
+const GENIE_MS = 560
+/** Fraction of the warp after which the real panel fades in underneath. */
+const HANDOFF = 0.72
+
 const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b)
-const pad = (n: number) => String(n).padStart(2, '0')
 
 const COPY = {
   es: {
@@ -29,14 +34,6 @@ const COPY = {
     scroll: 'Desliza',
     hintMouse: 'Haz click en un proyecto',
     hintTouch: 'Toca un proyecto',
-    close: 'Cerrar',
-    prev: 'Proyecto anterior',
-    next: 'Proyecto siguiente',
-    openSite: 'Abrir sitio ↗',
-    viewCode: 'Ver código ↗',
-    contribution: 'Mi aporte',
-    demo: 'Demo ↗',
-    code: 'Código ↗',
   },
   en: {
     h1: 'Alejandro Chávez — Full-Stack Developer & AI Engineer',
@@ -44,23 +41,16 @@ const COPY = {
     scroll: 'Scroll',
     hintMouse: 'Click a project',
     hintTouch: 'Tap a project',
-    close: 'Close',
-    prev: 'Previous project',
-    next: 'Next project',
-    openSite: 'Open live site ↗',
-    viewCode: 'View code ↗',
-    contribution: 'My contribution',
-    demo: 'Demo ↗',
-    code: 'Code ↗',
   },
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+const isBackdrop = (t: EventTarget | null) =>
+  t instanceof HTMLElement && (t.tagName === 'DIALOG' || t.hasAttribute('data-backdrop'))
 
 /** Hero + About in one 3D world, then the projects as a DOM collage layered over
  *  the canvas. Clicking a tile opens a glass detail panel (native modal <dialog>). */
 export function World() {
-  const lang = useLang()
   const t = useCopy(COPY)
   const sectionRef = useRef<HTMLElement>(null)
   const pinRef = useRef<HTMLDivElement>(null)
@@ -71,6 +61,10 @@ export function World() {
   const downOnBackdrop = useRef(false)
   const lastIdx = useRef<number | null>(null)
   const progress = useRef(0)
+  const genie = useRef<GenieInstance | null>(null)
+  /** The running show() (a close waits for it) and whether a hide is running. */
+  const opening = useRef<Promise<void> | null>(null)
+  const closing = useRef(false)
 
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [phase, setPhase] = useState<'name' | 'about' | 'field' | 'none'>('name')
@@ -127,6 +121,32 @@ export function World() {
   // (→ `cancel`); focus goes to the close button, and on close back to the tile
   // of the project last shown (the opener, or where prev/next left off).
   const open = selectedIdx !== null
+  const tileOf = (i: number | null) =>
+    i === null ? null : (collageRef.current?.querySelector<HTMLElement>(`.tile[data-index="${i}"]`) ?? null)
+
+  // Genie: the panel maximizes out of the clicked tile and minimizes back into
+  // the tile of the project on screen. The snapshot is painted by captureDesktop
+  // (backdrop-filter can't be captured from the DOM).
+  useEffect(() => {
+    const d = dialogRef.current
+    if (!d || !collageRef.current) return
+    const g = createGenie({
+      target: d,
+      origin: collageRef.current,
+      open: false,
+      direction: 'auto',
+      duration: GENIE_MS,
+      easing: 'linear',
+      zIndex: 50,
+      capture: captureDesktop,
+    })
+    genie.current = g
+    return () => {
+      g.destroy()
+      genie.current = null
+    }
+  }, [])
+
   useEffect(() => {
     if (selectedIdx === null) return
     lastIdx.current = selectedIdx
@@ -138,8 +158,38 @@ export function World() {
     const d = dialogRef.current
     if (!d) return
     if (open && !d.open) {
+      // Keep the real panel invisible until the warp hands over to it.
+      d.style.setProperty('visibility', 'hidden', 'important')
       d.showModal()
-      closeRef.current?.focus()
+      // A visibility:hidden element can't take focus: focus once it's shown.
+      const focusIn = () => {
+        if (!d.contains(document.activeElement)) closeRef.current?.focus({ preventScroll: true })
+      }
+      const g = genie.current
+      // lastIdx was just set by the effect above (same commit, runs first).
+      const tile = tileOf(lastIdx.current)
+      if (!g || !tile) {
+        d.style.removeProperty('visibility')
+        focusIn()
+        return
+      }
+      g.set({ origin: tile })
+      let handoff = 0
+      opening.current = warmup(d).then(() => {
+        const shown = g.show()
+        handoff = window.setTimeout(() => {
+          d.style.setProperty('visibility', 'visible', 'important')
+          d.animate([{ opacity: 0 }, { opacity: 1 }], { duration: GENIE_MS * (1 - HANDOFF), easing: 'ease-out' })
+          focusIn()
+        }, GENIE_MS * HANDOFF)
+        return shown
+      })
+      void opening.current.finally(() => {
+        window.clearTimeout(handoff)
+        d.style.setProperty('visibility', 'visible', 'important')
+        focusIn()
+        opening.current = null
+      })
     } else if (!open && d.open) {
       d.close()
       const tile = collageRef.current?.querySelector<HTMLElement>(`.tile[data-index="${lastIdx.current}"]`)
@@ -156,7 +206,22 @@ export function World() {
   }, [open])
 
   const select = (i: number) => setSelectedIdx(i)
-  const close = () => setSelectedIdx(null)
+  // Minimize back into the tile, then really close (the effect above).
+  const close = () => {
+    const g = genie.current
+    const d = dialogRef.current
+    const tile = tileOf(lastIdx.current)
+    if (!g || !d?.open || !tile) return setSelectedIdx(null)
+    if (closing.current) return
+    closing.current = true
+    void (async () => {
+      await opening.current?.catch(() => {})
+      g.set({ origin: tile })
+      await g.hide().catch(() => {})
+      closing.current = false
+      setSelectedIdx(null)
+    })()
+  }
   const step = (dir: 1 | -1) =>
     setSelectedIdx((i) => (i === null ? i : (i + dir + PROJECTS.length) % PROJECTS.length))
 
@@ -170,7 +235,10 @@ export function World() {
     } else if (e.key === 'Tab') {
       // Keep Tab cycling inside the panel (the native modal lets it escape to
       // the browser chrome).
-      const items = [...(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])]
+      // Only rendered ones: minimized windows / inactive tabs are `hidden`.
+      const items = [...(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])].filter(
+        (el) => el.getClientRects().length > 0,
+      )
       if (!items.length) return
       const first = items[0]
       const last = items[items.length - 1]
@@ -184,16 +252,19 @@ export function World() {
     }
   }
 
-  // Click on the dialog itself = on the dimmed backdrop, outside the card
-  // (press and release both there, so a drag out of the card doesn't close it).
+  // Click on the empty desktop (the dialog or an element marked data-backdrop),
+  // outside every window — press and release both there, so dragging a window
+  // and releasing over the wallpaper doesn't close it.
   const onBackdrop = (e: MouseEvent<HTMLDialogElement>) => {
-    if (e.target === e.currentTarget && downOnBackdrop.current) close()
+    if (isBackdrop(e.target) && downOnBackdrop.current) close()
     downOnBackdrop.current = false
   }
 
-  // Horizontal swipe (touch) → previous / next project.
+  // Horizontal swipe (touch) → previous / next project. Not from inside the
+  // screenshot viewer or a draggable window bar ([data-noswipe]).
   const onSwipeStart = (e: ReactPointerEvent) => {
-    swipe.current = e.pointerType === 'mouse' ? null : { x: e.clientX, y: e.clientY }
+    const noSwipe = e.target instanceof Element && !!e.target.closest('[data-noswipe]')
+    swipe.current = e.pointerType === 'mouse' || noSwipe ? null : { x: e.clientX, y: e.clientY }
   }
   const onSwipeEnd = (e: ReactPointerEvent) => {
     const s = swipe.current
@@ -205,7 +276,6 @@ export function World() {
   }
 
   const p = selectedIdx !== null ? PROJECTS[selectedIdx] : null
-  const contribution = p?.contribution ? tr(p.contribution, lang) : null
 
   return (
     <section className="world" ref={sectionRef}>
@@ -252,7 +322,7 @@ export function World() {
 
         <ProjectsCollage ref={collageRef} active={phase === 'field' && !open} onSelect={select} />
 
-        {/* Detail panel — glass frame with a preview + the write-up. */}
+        {/* Detail panel — a full-screen Y2K "desktop" with draggable windows (ProjectDesktop). */}
         <dialog
           ref={dialogRef}
           className="detail"
@@ -262,101 +332,20 @@ export function World() {
             close()
           }}
           onClose={() => setSelectedIdx(null)}
-          onPointerDown={(e) => (downOnBackdrop.current = e.target === e.currentTarget)}
+          onPointerDown={(e) => (downOnBackdrop.current = isBackdrop(e.target))}
           onClick={onBackdrop}
           onKeyDown={onKeyDown}
         >
           {p && (
-            <div
-              className="detail__card"
-              onPointerDown={onSwipeStart}
-              onPointerUp={onSwipeEnd}
-              onPointerCancel={() => (swipe.current = null)}
-            >
-              {/* Window bar: counter + prev/next + close (sticky on phones). */}
-              <div className="detail__bar">
-                <WindowDots />
-                <span className="detail__count" aria-live="polite">
-                  {pad(selectedIdx! + 1)} / {pad(PROJECTS.length)}
-                </span>
-                <div className="detail__nav">
-                  <button type="button" className="detail__btn" onClick={() => step(-1)} aria-label={t.prev}>
-                    ‹
-                  </button>
-                  <button type="button" className="detail__btn" onClick={() => step(1)} aria-label={t.next}>
-                    ›
-                  </button>
-                  <button
-                    type="button"
-                    ref={closeRef}
-                    className="detail__btn detail__close"
-                    onClick={close}
-                    aria-label={t.close}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              <div
-                key={`pv-${selectedIdx}`}
-                className="detail__preview"
-                data-demo={!!p.demo}
-                style={{ '--accent': p.accent } as CSSProperties}
-              >
-                {p.demo ? (
-                  <>
-                    <div className="detail__preview-glow" />
-                    <span className="detail__preview-label">{new URL(p.demo).host}</span>
-                    <a className="detail__open" href={p.demo} target="_blank" rel="noreferrer">
-                      {t.openSite}
-                    </a>
-                  </>
-                ) : (
-                  <>
-                    <img className="detail__preview-icon" src={p.icon} alt="" />
-                    {p.repo && (
-                      <a className="detail__open" href={p.repo} target="_blank" rel="noreferrer">
-                        {t.viewCode}
-                      </a>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div key={`in-${selectedIdx}`} className="detail__info">
-                <h2 className="detail__title">{p.title}</h2>
-                <p className="detail__role">
-                  {tr(p.role, lang)} · {p.year}
-                </p>
-                <p className="detail__what">{tr(p.blurb, lang)}</p>
-                {contribution && (
-                  <p className="detail__did">
-                    <strong>{t.contribution}</strong>
-                    {contribution}
-                  </p>
-                )}
-                {p.stack.length > 0 && (
-                  <ul className="detail__stack">
-                    {p.stack.map((s) => (
-                      <li key={s}>{s}</li>
-                    ))}
-                  </ul>
-                )}
-                <div className="detail__links">
-                  {p.demo && (
-                    <a href={p.demo} target="_blank" rel="noreferrer">
-                      {t.demo}
-                    </a>
-                  )}
-                  {p.repo && (
-                    <a href={p.repo} target="_blank" rel="noreferrer">
-                      {t.code}
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
+            <ProjectDesktop
+              project={p}
+              index={selectedIdx!}
+              total={PROJECTS.length}
+              onStep={step}
+              onClose={close}
+              closeRef={closeRef}
+              swipe={{ onPointerDown: onSwipeStart, onPointerUp: onSwipeEnd, onPointerCancel: () => (swipe.current = null) }}
+            />
           )}
         </dialog>
       </div>

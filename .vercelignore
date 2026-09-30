@@ -1,0 +1,4 @@
+# Only the source Vercel needs to build: skip local artefacts.
+.playwright-mcp
+dist
+HANDOFF.md

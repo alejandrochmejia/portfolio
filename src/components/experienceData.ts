@@ -1,4 +1,4 @@
-import type { L10n, Lang } from '../i18n.ts'
+import type { L10n, Lang } from '../l10n.ts'
 
 export type ExperienceKind = 'work' | 'freelance' | 'education'
 

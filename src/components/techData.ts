@@ -1,4 +1,4 @@
-import type { L10n } from '../i18n.ts'
+import type { L10n } from '../l10n.ts'
 
 /** Technologies shown as blocks in the Tech Stack mini-game. Order = grid order
  *  (row by row). `color` tints the block and its explosion; `kind` is the small

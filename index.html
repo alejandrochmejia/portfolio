@@ -2,26 +2,53 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#050506" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
-    <title>Alejandro Chávez — Desarrollador Full-Stack e Ingeniero de IA</title>
-    <meta
-      name="description"
-      content="Portfolio de Alejandro Chávez, desarrollador full-stack e ingeniero de IA."
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Alejandro Chávez" />
-    <meta property="og:description" content="Full-Stack Developer & AI Engineer" />
-    <meta property="og:locale" content="es_VE" />
-    <meta property="og:locale:alternate" content="en_US" />
-    <meta name="twitter:card" content="summary" />
+    <!-- title, description, canonical, hreflang, Open Graph, JSON-LD: vite-plugin-seo.ts -->
+    <!--seo:head--><!--/seo:head-->
+
     <link rel="preload" href="/fonts/Anton-Regular.ttf" as="font" type="font/ttf" crossorigin />
+    <style>
+      /* Static copy of the content for crawlers and no-JS readers (vite-plugin-seo.ts).
+         React replaces it on mount; until then it stays out of sight. */
+      .seo-static {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    </style>
+    <noscript>
+      <style>
+        .seo-static {
+          position: static;
+          width: auto;
+          height: auto;
+          overflow: visible;
+          clip-path: none;
+          white-space: normal;
+          max-width: 46rem;
+          margin: 0 auto;
+          padding: 2rem 1rem;
+          font: 16px/1.6 system-ui, sans-serif;
+          color: #f7f5f2;
+          background: #050506;
+        }
+        .seo-static a { color: #8bb8ff; }
+        body { margin: 0; background: #050506; }
+      </style>
+    </noscript>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><!--seo:body--><!--/seo:body--></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -103,6 +103,7 @@ type TileProps = {
 function ProjectTile({ project, index, featured, tabbable, onSelect }: TileProps) {
   const lang = useLang()
   const role = tr(project.role, lang)
+  const descId = `tile-desc-${index}`
   const host = project.demo
     ? new URL(project.demo).host
     : `gh/${project.repo?.split('/').pop() ?? ''}`
@@ -116,6 +117,7 @@ function ProjectTile({ project, index, featured, tabbable, onSelect }: TileProps
       style={{ '--accent': project.accent } as CSSProperties}
       onClick={() => onSelect(index)}
       aria-label={`${project.title} — ${role} · ${project.year}`}
+      aria-describedby={descId}
     >
       {/* Y2K OS-window title bar. */}
       <span className="tile__bar" aria-hidden="true">
@@ -140,6 +142,11 @@ function ProjectTile({ project, index, featured, tabbable, onSelect }: TileProps
         <span className="tile__role">
           {role} · {project.year}
         </span>
+      </span>
+
+      {/* The blurb lives only in the detail panel otherwise: keep it in the DOM. */}
+      <span className="tile__sr" id={descId}>
+        {tr(project.blurb, lang)}
       </span>
     </button>
   )

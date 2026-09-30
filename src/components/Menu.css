@@ -123,7 +123,7 @@
 
 /* ==== Section links: `/path`, the slash morphs into a chrome arrow ==== */
 
-@property --len {
+@property --glyph-len {
   syntax: '<length>';
   inherits: true;
   initial-value: 0px; /* must be absolute; the real rest value is set below */
@@ -205,12 +205,12 @@
    bars 2–3 are the arrowhead, folded away at rest. */
 .mlink__glyph {
   --t: 0.085em;
-  --len: 0.82em;
+  --glyph-len: 0.82em;
   position: relative;
   flex: none;
   width: 0.4em;
   height: 0.8em;
-  transition: width 0.45s var(--spring), --len 0.45s var(--spring);
+  transition: width 0.45s var(--spring), --glyph-len 0.45s var(--spring);
 }
 .mlink__glyph i {
   position: absolute;
@@ -222,14 +222,14 @@
 }
 .mlink__glyph i:nth-child(1) {
   left: 50%;
-  width: var(--len);
+  width: var(--glyph-len);
   translate: -50% -50%;
   rotate: -66deg;
   transition: rotate 0.45s var(--spring);
 }
 .mlink__glyph i:nth-child(2),
 .mlink__glyph i:nth-child(3) {
-  left: calc(50% + var(--len) / 2 - 0.3em);
+  left: calc(50% + var(--glyph-len) / 2 - 0.3em);
   width: 0.3em;
   translate: 0 -50%;
   transform-origin: calc(100% - var(--t) / 2) 50%;
@@ -284,7 +284,7 @@
 
 /* ---- Hover / focus / click: "/" → "→" ---- */
 .mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__glyph {
-  --len: 0.66em;
+  --glyph-len: 0.66em;
   width: 0.78em;
 }
 .mlink:is(:hover, :focus-visible, [data-go='true']) .mlink__glyph i:nth-child(1) { rotate: 0deg; }

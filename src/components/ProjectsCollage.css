@@ -220,6 +220,16 @@
   pointer-events: none;
 }
 
+/* Blurb for crawlers and assistive tech (the tile's aria-describedby). */
+.tile__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .tile__meta {
   position: absolute;
   left: 0;
